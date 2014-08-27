@@ -10,8 +10,26 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 AC_PROG_CC
 
 # Checks for libraries.
+AC_ARG_WITH([fcgi],
+   AC_HELP_STRING([--with-fcgi],
+      [enable FastCGI support, default: check]),
+   AS_CASE([${withval}],
+      [no], AS_VAR_SET([use_fcgi], [no]),
+      [yes], AS_VAR_SET([use_fcgi], [yes]),
+      [check], AS_VAR_SET([use_fcgi], [check]),
+      [""], AS_VAR_SET([use_fcgi], [yes]),
+      AC_MSG_ERROR([Custom path to FastCGI installation is not yet supported])),
+   AS_VAR_SET([use_fcgi], [check]))
+AS_IF([test "x$use_fcgi" != xno],
+   [AC_CHECK_LIB([fcgi],
+      [FCGI_Accept])])
+AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xno],
+   AS_IF([test "x$use_fcgi" == xyes],
+      AC_MSG_ERROR([FastCGI library not found, try --without-fcgi])))
 
 # Checks for header files.
+AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
+   [AC_CHECK_HEADERS([fcgi_stdio.h], , AC_MSG_ERROR([FastCGI headers not found]))])
 
 # Checks for typedefs, structures, and compiler characteristics.
 

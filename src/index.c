@@ -1,3 +1,13 @@
+#include <config.h>
+
+#ifndef HAVE_FCGI_STDIO_H
+#define HAVE_FCGI_STDIO_H 0
+#else
+#if HAVE_FCGI_STDIO_H
+#include <fcgi_stdio.h>
+#endif
+#endif
+
 #include <stdio.h>
 
 void print_wiomw_login_form()
@@ -19,16 +29,24 @@ void print_wiomw_login_form()
 
 int main()
 {
-	printf("Content-type: text/html\n\n<!DOCTYPE html>");
-	printf("<html><head><title>%s</title></head><body>", "OpenWRT SUI");
+#if HAVE_FCGI_STDIO_H
+	while (FCGI_Accept() >= 0) {
+#endif
+		printf("Content-type: text/html\n\n<!DOCTYPE html>");
+		printf("<html><head><title>%s</title></head><body>",
+				"OpenWRT SUI");
 
-	printf("<h1>%s</h1>", "Basic Options");
+		printf("<h1>%s</h1>", "Basic Options");
 
-	print_wiomw_login_form();
+		print_wiomw_login_form();
 
-	printf("<h4><a href=\"/advanced.cgi\">%s</a></h4>", "Advanced Options");
+		printf("<h4><a href=\"/advanced.cgi\">%s</a></h4>",
+				"Advanced Options");
 
-	printf("</body></html>");
+		printf("</body></html>");
+#if HAVE_FCGI_STDIO_H
+	}
+#endif
 
 	return 0;
 }
