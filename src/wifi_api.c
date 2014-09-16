@@ -13,7 +13,6 @@
 #include <syslog.h>
 #include <string.h>
 #include <stdlib.h>
-#include "wifi.h"
 
 void print_post_data()
 {
@@ -159,7 +158,6 @@ void save_ssid_form(char** essid, char** psk)
 		}
 	}
 
-	set_vals(*essid, *psk);
 }
 
 void print_ssid_form(const char* essid, const char* psk)

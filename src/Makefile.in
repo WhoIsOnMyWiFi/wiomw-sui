@@ -48,7 +48,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_advanced_cgi_OBJECTS = advanced.$(OBJEXT)
 advanced_cgi_OBJECTS = $(am_advanced_cgi_OBJECTS)
 advanced_cgi_LDADD = $(LDADD)
-am_index_cgi_OBJECTS = index.$(OBJEXT)
+am_index_cgi_OBJECTS = index.$(OBJEXT) wifi.$(OBJEXT)
 index_cgi_OBJECTS = $(am_index_cgi_OBJECTS)
 index_cgi_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -150,7 +150,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-index_cgi_SOURCES = index.c
+index_cgi_SOURCES = index.c wifi.h wifi.c
 advanced_cgi_SOURCES = advanced.c
 all: all-am
 
@@ -238,6 +238,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/advanced.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/index.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
