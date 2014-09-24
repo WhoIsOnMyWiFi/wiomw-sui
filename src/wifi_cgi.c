@@ -92,7 +92,7 @@ int main()
 
 		printf("Content-type: application/json\n\n");
 
-		if (strcmp(method, "HEAD") != 0) {
+		if (method == NULL || strcmp(method, "HEAD") != 0) {
 			char* ssid = NULL;
 			char* psk = NULL;
 			get_wifi_vals(&ssid, &psk);

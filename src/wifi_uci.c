@@ -87,10 +87,16 @@ int get_wifi_ssid(char** ssid)
 		if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 			*ssid = strdup(ptr.o->v.string);
 		}
+	} else if (status == UCI_ERR_NOTFOUND) {
+		fprintf(stderr, "SSID not set in UCI");
 	} else {
 		char** temp_str = NULL;
 		uci_get_errorstr(ctx, temp_str, "");
-		fprintf(stderr, "Unable to retrieve SSID from UCI: %s", *temp_str);
+		if (temp_str == NULL || *temp_str == NULL) {
+			fprintf(stderr, "Unable to retrieve SSID from UCI");
+		} else {
+			fprintf(stderr, "Unable to retrieve SSID from UCI: %s", *temp_str);
+		}
 	}
 	return status;
 }
@@ -107,10 +113,16 @@ int get_wifi_psk(char** psk)
 		if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 			*psk = strdup(ptr.o->v.string);
 		}
+	} else if (status == UCI_ERR_NOTFOUND) {
+		fprintf(stderr, "PSK not set in UCI");
 	} else {
 		char** temp_str = NULL;
 		uci_get_errorstr(ctx, temp_str, "");
-		fprintf(stderr, "Unable to retrieve PSK from UCI: %s", *temp_str);
+		if (temp_str == NULL || *temp_str == NULL) {
+			fprintf(stderr, "Unable to retrieve PSK from UCI");
+		} else {
+			fprintf(stderr, "Unable to retrieve PSK from UCI: %s", *temp_str);
+		}
 	}
 	return status;
 }
@@ -128,10 +140,17 @@ int get_wifi_vals(char** ssid, char** psk)
 		if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 			*ssid = strdup(ptr.o->v.string);
 		}
+	} else if (status == UCI_ERR_NOTFOUND) {
+		fprintf(stderr, "SSID not set in UCI");
+		return status;
 	} else {
 		char** temp_str = NULL;
 		uci_get_errorstr(ctx, temp_str, "");
-		fprintf(stderr, "Unable to retrieve SSID from UCI: %s", *temp_str);
+		if (temp_str == NULL || *temp_str == NULL) {
+			fprintf(stderr, "Unable to retrieve SSID from UCI");
+		} else {
+			fprintf(stderr, "Unable to retrieve SSID from UCI: %s", *temp_str);
+		}
 		return status;
 	}
 	status = uci_lookup_ptr(ctx, &ptr, psk_path, true);
@@ -139,10 +158,17 @@ int get_wifi_vals(char** ssid, char** psk)
 		if ((ptr.flags & UCI_LOOKUP_COMPLETE) && 0 < strlen(ptr.o->v.string)) {
 			*psk = strdup(ptr.o->v.string);
 		}
+	} else if (status == UCI_ERR_NOTFOUND) {
+		fprintf(stderr, "PSK not set in UCI");
+		return status;
 	} else {
 		char** temp_str = NULL;
 		uci_get_errorstr(ctx, temp_str, "");
-		fprintf(stderr, "Unable to retrieve PSK from UCI: %s", *temp_str);
+		if (temp_str == NULL || *temp_str == NULL) {
+			fprintf(stderr, "Unable to retrieve PSK from UCI");
+		} else {
+			fprintf(stderr, "Unable to retrieve PSK from UCI: %s", *temp_str);
+		}
 		return status;
 	}
 }
