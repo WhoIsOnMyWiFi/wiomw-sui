@@ -1,3 +1,2 @@
-bin_PROGRAMS = index.cgi advanced.cgi
-index_cgi_SOURCES = index.c wifi.h wifi.c
-advanced_cgi_SOURCES = advanced.c
+bin_PROGRAMS = wifi.cgi
+wifi_cgi_SOURCES = wifi_cgi.c wifi_uci.h wifi_uci.c
