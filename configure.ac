@@ -10,6 +10,8 @@ AM_INIT_AUTOMAKE([-Wall -Werror])
 AC_PROG_CC
 
 # Checks for libraries.
+AC_SEARCH_LIBS([__isnan], [m])
+AC_SEARCH_LIBS([__isinf], [m])
 AC_CHECK_LIB([uci], [uci_alloc_context])
 AC_ARG_WITH([fcgi],
    AC_HELP_STRING([--with-fcgi],
