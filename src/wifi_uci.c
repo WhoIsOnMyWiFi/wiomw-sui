@@ -19,11 +19,11 @@ int set_wifi_ssid(const char* ssid)
 	char* ssid_path = strdup(SSID_UCI_STRING);
 	ctx = uci_alloc_context();
 	snprintf(uci_string, BUFSIZ, "%s=%s", ssid_path, ssid);
-	if ((res = uci_parse_ptr(ctx, &ptr, uci_string)) != 0) {
-		return res;
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_OK
+			&& (res = uci_set(ctx, &ptr)) == UCI_OK
+			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+		res = uci_commit(ctx, &(ptr.p), false);
 	}
-	res = uci_set(ctx, &ptr);
-	uci_commit(ctx, &(ptr.p), true);
 	uci_free_context(ctx);
 	free(ssid_path);
 	return res;
@@ -38,11 +38,11 @@ int set_wifi_psk(const char* psk)
 	char* psk_path = strdup(PSK_UCI_STRING);
 	ctx = uci_alloc_context();
 	snprintf(uci_string, BUFSIZ, "%s=%s", psk_path, psk);
-	if ((res = uci_parse_ptr(ctx, &ptr, uci_string)) != 0) {
-		return res;
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_OK
+			&& (res = uci_set(ctx, &ptr)) == UCI_OK
+			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+		res = uci_commit(ctx, &(ptr.p), false);
 	}
-	res = uci_set(ctx, &ptr);
-	uci_commit(ctx, &(ptr.p), true);
 	uci_free_context(ctx);
 	free(psk_path);
 	return res;
@@ -60,15 +60,14 @@ int set_wifi_vals(const char* ssid, const char* psk)
 	ctx = uci_alloc_context();
 	snprintf(uci_ssid_string, BUFSIZ, "%s=%s", ssid_path, ssid);
 	snprintf(uci_psk_string, BUFSIZ, "%s=%s", psk_path, psk);
-	if ((res = uci_parse_ptr(ctx, &ptr, uci_ssid_string)) != 0) {
-		return res;
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_ssid_string, true)) == UCI_OK
+			&& (res = uci_set(ctx, &ptr)) == UCI_OK
+			&& (res = uci_save(ctx, ptr.p)) == UCI_OK
+			&& (res = uci_lookup_ptr(ctx, &ptr, uci_psk_string, true)) == UCI_OK
+			&& (res = uci_set(ctx, &ptr)) == UCI_OK
+			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+		uci_commit(ctx, &(ptr.p), false);
 	}
-	res = uci_set(ctx, &ptr);
-	if ((res = uci_parse_ptr(ctx, &ptr, uci_psk_string)) != 0) {
-		return res;
-	}
-	res = uci_set(ctx, &ptr);
-	uci_commit(ctx, &(ptr.p), true);
 	uci_free_context(ctx);
 	free(psk_path);
 	free(ssid_path);
