@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = wifi.cgi$(EXEEXT)
+bin_PROGRAMS = wifi.cgi$(EXEEXT) wiomw.cgi$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -48,6 +48,9 @@ PROGRAMS = $(bin_PROGRAMS)
 am_wifi_cgi_OBJECTS = wifi_cgi.$(OBJEXT) wifi_uci.$(OBJEXT)
 wifi_cgi_OBJECTS = $(am_wifi_cgi_OBJECTS)
 wifi_cgi_LDADD = $(LDADD)
+am_wiomw_cgi_OBJECTS = wiomw_cgi.$(OBJEXT) wiomw_uci.$(OBJEXT)
+wiomw_cgi_OBJECTS = $(am_wiomw_cgi_OBJECTS)
+wiomw_cgi_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -56,8 +59,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(wifi_cgi_SOURCES)
-DIST_SOURCES = $(wifi_cgi_SOURCES)
+SOURCES = $(wifi_cgi_SOURCES) $(wiomw_cgi_SOURCES)
+DIST_SOURCES = $(wifi_cgi_SOURCES) $(wiomw_cgi_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -148,6 +151,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 wifi_cgi_SOURCES = wifi_cgi.c wifi_uci.h wifi_uci.c
+wiomw_cgi_SOURCES = wiomw_cgi.c wiomw_uci.h wiomw_uci.c
 all: all-am
 
 .SUFFIXES:
@@ -222,6 +226,9 @@ clean-binPROGRAMS:
 wifi.cgi$(EXEEXT): $(wifi_cgi_OBJECTS) $(wifi_cgi_DEPENDENCIES) $(EXTRA_wifi_cgi_DEPENDENCIES) 
 	@rm -f wifi.cgi$(EXEEXT)
 	$(LINK) $(wifi_cgi_OBJECTS) $(wifi_cgi_LDADD) $(LIBS)
+wiomw.cgi$(EXEEXT): $(wiomw_cgi_OBJECTS) $(wiomw_cgi_DEPENDENCIES) $(EXTRA_wiomw_cgi_DEPENDENCIES) 
+	@rm -f wiomw.cgi$(EXEEXT)
+	$(LINK) $(wiomw_cgi_OBJECTS) $(wiomw_cgi_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -231,6 +238,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi_cgi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi_uci.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw_cgi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw_uci.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
