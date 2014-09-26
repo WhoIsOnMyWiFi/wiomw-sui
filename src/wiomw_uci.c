@@ -29,7 +29,7 @@ int assure_wiomw_uci_entry(struct uci_context* ctx)
 		return res;
 	}
 	free(uci_string);
-	uci_string = strdup(AGENTKEY_UCI_STRING);
+	uci_string = strdup(AGENT_UCI_STRING);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND
 			&& (res = uci_lookup_ptr(ctx, &ptr, (uci_string = strdup(AGENT_ASSIGN_UCI_STRING)), true)) == UCI_OK
 			&& (res = uci_set(ctx, &ptr)) == UCI_OK
