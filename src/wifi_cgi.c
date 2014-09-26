@@ -93,8 +93,9 @@ int main()
 		printf("Content-type: application/json\n\n");
 
 		if (method == NULL || strcmp(method, "HEAD") != 0) {
-			char* ssid = NULL;
-			char* psk = NULL;
+			char* empty = "";
+			char* ssid = empty;
+			char* psk = empty;
 			get_wifi_vals(&ssid, &psk);
 			/* TODO JSON-escape the ssid and psk */
 			printf("{\"ssid\":\"%s\",\"psk\":\"%s\"", ssid, psk);
@@ -103,8 +104,12 @@ int main()
 			} else {
 				printf("}");
 			}
-			free(ssid);
-			free(psk);
+			if (ssid != empty) {
+				free(ssid);
+			}
+			if (psk != empty) {
+				free(psk);
+			}
 		}
 #if HAVE_FCGI_STDIO_H
 	}
