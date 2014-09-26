@@ -37,11 +37,12 @@ AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
 AC_CHECK_HEADERS([stdlib.h string.h syslog.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_SIZE_T
 AC_HEADER_STDBOOL
+AC_TYPE_SIZE_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([strdup])
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([stpcpy strdup strtoul])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
