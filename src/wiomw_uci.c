@@ -19,19 +19,24 @@ int assure_wiomw_uci_entry(struct uci_context* ctx)
 {
 	struct uci_ptr ptr;
 	int res = 0;
-	if ((res = uci_lookup_ptr(ctx, &ptr, WIOMW_UCI_STRING, true)) == UCI_ERR_NOTFOUND) {
+	char* uci_string = strdup(WIOMW_UCI_STRING);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND) {
 		FILE* devnull = fopen("/dev/null", "r");
-		res = uci_import(ctx, devnull, WIOMW_UCI_STRING, NULL, true);
+		res = uci_import(ctx, devnull, uci_string, NULL, true);
 		fclose(devnull);
 	} else if (res != UCI_OK) {
+		free(uci_string);
 		return res;
 	}
-	if ((res = uci_lookup_ptr(ctx, &ptr, AGENT_UCI_STRING, true)) == UCI_ERR_NOTFOUND
-			&& (res = uci_lookup_ptr(ctx, &ptr, AGENT_ASSIGN_UCI_STRING, true)) == UCI_OK
+	free(uci_string);
+	uci_string = strdup(AGENTKEY_UCI_STRING);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND
+			&& (res = uci_lookup_ptr(ctx, &ptr, (uci_string = strdup(AGENT_ASSIGN_UCI_STRING)), true)) == UCI_OK
 			&& (res = uci_set(ctx, &ptr)) == UCI_OK
 			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
 		uci_commit(ctx, &(ptr.p), true);
 	}
+	free(uci_string);
 	return res;
 }
 
