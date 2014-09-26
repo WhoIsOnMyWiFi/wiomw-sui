@@ -8,137 +8,128 @@
 #include <syslog.h>
 
 #define WIOMW_UCI_STRING "wiomw"
-#define AGENT_UCI_STRING "wiomw.agent=wiomw-agent"
+#define AGENT_UCI_STRING "wiomw.agent"
+#define AGENT_ASSIGN_UCI_STRING AGENT_UCI_STRING "=wiomw-agent"
 #define AGENTKEY_UCI_STRING "wiomw.agent.agentkey"
 #define USERNAME_UCI_STRING "wiomw.agent.username"
 #define PASSHASH_UCI_STRING "wiomw.agent.passhash"
 #define AGENTKEY_PLACEHOLDER "openwrt-placeholder"
 
-int create_wiomw_uci_entry(struct uci_context* ctx)
+int assure_wiomw_uci_entry(struct uci_context* ctx)
 {
 	struct uci_ptr ptr;
 	int res = 0;
-	if ((res = uci_lookup_ptr(ctx, &ptr, AGENT_UCI_STRING, true)) == UCI_ERR_NOTFOUND) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, WIOMW_UCI_STRING, true)) == UCI_ERR_NOTFOUND) {
 		FILE* devnull = fopen("/dev/null", "r");
 		res = uci_import(ctx, devnull, WIOMW_UCI_STRING, NULL, true);
 		fclose(devnull);
-		if (res == UCI_OK) {
-			res = uci_lookup_ptr(ctx, &ptr, AGENT_UCI_STRING, true);
-		}
+	} else if (res != UCI_OK) {
+		return res;
 	}
-	if (res == UCI_OK && (res = uci_set(ctx, &ptr)) == UCI_OK) {
-		res = uci_save(ctx, ptr.p);
+	if ((res = uci_lookup_ptr(ctx, &ptr, AGENT_UCI_STRING, true)) == UCI_ERR_NOTFOUND
+			&& (res = uci_lookup_ptr(ctx, &ptr, AGENT_ASSIGN_UCI_STRING, true)) == UCI_OK
+			&& (res = uci_set(ctx, &ptr)) == UCI_OK
+			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+		uci_commit(ctx, &(ptr.p), true);
 	}
 	return res;
 }
 
 int set_wiomw_agentkey(const char* agentkey)
 {
-	char uci_string[BUFSIZ];
 	struct uci_context* ctx;
-	struct uci_ptr ptr;
 	int res = 0;
-	char* agentkey_path = strdup(AGENTKEY_UCI_STRING);
 	ctx = uci_alloc_context();
-	snprintf(uci_string, BUFSIZ, "%s=%s", agentkey_path, agentkey);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND) {
-		if ((res = create_wiomw_uci_entry(ctx)) == UCI_OK) {
-			res = uci_lookup_ptr(ctx, &ptr, uci_string, true);
+	if ((res = assure_wiomw_uci_entry(ctx)) == UCI_OK) {
+		char uci_string[BUFSIZ];
+		struct uci_ptr ptr;
+		char* agentkey_path = strdup(AGENTKEY_UCI_STRING);
+		snprintf(uci_string, BUFSIZ, "%s=%s", agentkey_path, agentkey);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+			res = uci_commit(ctx, &(ptr.p), false);
 		}
-	}
-	if (res == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
-		res = uci_commit(ctx, &(ptr.p), false);
+		free(agentkey_path);
 	}
 	uci_free_context(ctx);
-	free(agentkey_path);
 	return res;
 }
 
 int set_wiomw_username(const char* username)
 {
-	char uci_string[BUFSIZ];
 	struct uci_context* ctx;
-	struct uci_ptr ptr;
 	int res = 0;
-	char* username_path = strdup(USERNAME_UCI_STRING);
 	ctx = uci_alloc_context();
-	snprintf(uci_string, BUFSIZ, "%s=%s", username_path, username);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND) {
-		if ((res = create_wiomw_uci_entry(ctx)) == UCI_OK) {
-			res = uci_lookup_ptr(ctx, &ptr, uci_string, true);
+	if ((res = assure_wiomw_uci_entry(ctx)) == UCI_OK) {
+		char uci_string[BUFSIZ];
+		struct uci_ptr ptr;
+		char* username_path = strdup(USERNAME_UCI_STRING);
+		snprintf(uci_string, BUFSIZ, "%s=%s", username_path, username);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+			res = uci_commit(ctx, &(ptr.p), false);
 		}
-	}
-	if (res == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
-		res = uci_commit(ctx, &(ptr.p), false);
+		free(username_path);
 	}
 	uci_free_context(ctx);
-	free(username_path);
 	return res;
 }
 
 int set_wiomw_passhash(const char* passhash)
 {
-	char uci_string[BUFSIZ];
 	struct uci_context* ctx;
-	struct uci_ptr ptr;
 	int res = 0;
-	char* passhash_path = strdup(PASSHASH_UCI_STRING);
 	ctx = uci_alloc_context();
-	snprintf(uci_string, BUFSIZ, "%s=%s", passhash_path, passhash);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND) {
-		if ((res = create_wiomw_uci_entry(ctx)) == UCI_OK) {
-			res = uci_lookup_ptr(ctx, &ptr, uci_string, true);
+	if ((res = assure_wiomw_uci_entry(ctx)) == UCI_OK) {
+		char uci_string[BUFSIZ];
+		struct uci_ptr ptr;
+		char* passhash_path = strdup(PASSHASH_UCI_STRING);
+		snprintf(uci_string, BUFSIZ, "%s=%s", passhash_path, passhash);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+			res = uci_commit(ctx, &(ptr.p), false);
 		}
-	}
-	if (res == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
-		res = uci_commit(ctx, &(ptr.p), false);
+		free(passhash_path);
 	}
 	uci_free_context(ctx);
-	free(passhash_path);
 	return res;
 }
 
 int set_wiomw_vals(const char* agentkey, const char* username, const char* passhash)
 {
-	char uci_agentkey_string[BUFSIZ];
-	char uci_username_string[BUFSIZ];
-	char uci_passhash_string[BUFSIZ];
 	struct uci_context* ctx;
-	struct uci_ptr ptr;
 	int res = 0;
-	char* agentkey_path = strdup(AGENTKEY_UCI_STRING);
-	char* username_path = strdup(USERNAME_UCI_STRING);
-	char* passhash_path = strdup(PASSHASH_UCI_STRING);
 	ctx = uci_alloc_context();
-	snprintf(uci_agentkey_string, BUFSIZ, "%s=%s", agentkey_path, agentkey);
-	snprintf(uci_username_string, BUFSIZ, "%s=%s", username_path, username);
-	snprintf(uci_passhash_string, BUFSIZ, "%s=%s", passhash_path, passhash);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_agentkey_string, true)) == UCI_ERR_NOTFOUND) {
-		if ((res = create_wiomw_uci_entry(ctx)) == UCI_OK) {
-			res =uci_lookup_ptr(ctx, &ptr, uci_agentkey_string, true);
+	if ((res = assure_wiomw_uci_entry(ctx)) == UCI_OK) {
+		struct uci_ptr ptr;
+		char uci_agentkey_string[BUFSIZ];
+		char uci_username_string[BUFSIZ];
+		char uci_passhash_string[BUFSIZ];
+		char* agentkey_path = strdup(AGENTKEY_UCI_STRING);
+		char* username_path = strdup(USERNAME_UCI_STRING);
+		char* passhash_path = strdup(PASSHASH_UCI_STRING);
+		snprintf(uci_agentkey_string, BUFSIZ, "%s=%s", agentkey_path, agentkey);
+		snprintf(uci_username_string, BUFSIZ, "%s=%s", username_path, username);
+		snprintf(uci_passhash_string, BUFSIZ, "%s=%s", passhash_path, passhash);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_agentkey_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK
+				&& (res = uci_lookup_ptr(ctx, &ptr, uci_username_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK
+				&& (res = uci_lookup_ptr(ctx, &ptr, uci_passhash_string, true)) == UCI_OK
+				&& (res = uci_set(ctx, &ptr)) == UCI_OK
+				&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
+			uci_commit(ctx, &(ptr.p), false);
 		}
-	}
-	if (res == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK
-			&& (res = uci_lookup_ptr(ctx, &ptr, uci_username_string, true)) == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK
-			&& (res = uci_lookup_ptr(ctx, &ptr, uci_passhash_string, true)) == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
-		uci_commit(ctx, &(ptr.p), false);
+		free(passhash_path);
+		free(username_path);
+		free(agentkey_path);
 	}
 	uci_free_context(ctx);
-	free(passhash_path);
-	free(username_path);
-	free(agentkey_path);
 	return res;
 }
 
