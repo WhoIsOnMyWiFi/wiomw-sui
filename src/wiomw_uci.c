@@ -30,8 +30,7 @@ int assure_wiomw_uci_entry(struct uci_context* ctx)
 	}
 	free(uci_string);
 	uci_string = strdup(AGENT_UCI_STRING);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND
-			&& (res = uci_lookup_ptr(ctx, &ptr, (uci_string = strdup(AGENT_ASSIGN_UCI_STRING)), true)) == UCI_OK
+	if ((res = uci_lookup_ptr(ctx, &ptr, (uci_string = strdup(AGENT_ASSIGN_UCI_STRING)), true)) == UCI_OK
 			&& (res = uci_set(ctx, &ptr)) == UCI_OK
 			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
 		uci_commit(ctx, &(ptr.p), true);
