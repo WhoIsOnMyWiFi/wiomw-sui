@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <polarssl/sha4.h>
+#include <polarssl/sha512.h>
 #include <yajl/yajl_tree.h>
 
 #define PASSWORD_CHECK_WAIT 15
@@ -136,7 +136,7 @@ void post_password(yajl_val top)
 	unsigned char raw_phash[64];
 	char phash[129];
 
-	sha4(psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_phash, 0);
+	sha512(psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_phash, 0);
 
 	char* tphash = phash;
 	unsigned char* traw_phash = raw_phash;
@@ -190,7 +190,7 @@ bool valid_creds(yajl_val top)
 	unsigned char raw_aphash[64];
 	char aphash[129];
 
-	sha4(psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_aphash, 0);
+	sha512(psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_aphash, 0);
 
 	unsigned char* traw_aphash = raw_aphash;
 	char* taphash = aphash;

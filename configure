@@ -3989,9 +3989,9 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for sha4 in -lpolarssl" >&5
-$as_echo_n "checking for sha4 in -lpolarssl... " >&6; }
-if ${ac_cv_lib_polarssl_sha4+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for sha512 in -lpolarssl" >&5
+$as_echo_n "checking for sha512 in -lpolarssl... " >&6; }
+if ${ac_cv_lib_polarssl_sha512+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -4005,27 +4005,27 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char sha4 ();
+char sha512 ();
 int
 main ()
 {
-return sha4 ();
+return sha512 ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_polarssl_sha4=yes
+  ac_cv_lib_polarssl_sha512=yes
 else
-  ac_cv_lib_polarssl_sha4=no
+  ac_cv_lib_polarssl_sha512=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_polarssl_sha4" >&5
-$as_echo "$ac_cv_lib_polarssl_sha4" >&6; }
-if test "x$ac_cv_lib_polarssl_sha4" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_polarssl_sha512" >&5
+$as_echo "$ac_cv_lib_polarssl_sha512" >&6; }
+if test "x$ac_cv_lib_polarssl_sha512" = xyes; then :
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBPOLARSSL 1
 _ACEOF

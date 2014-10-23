@@ -31,7 +31,7 @@ AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xno],
    AS_IF([test "x$use_fcgi" == xyes],
       AC_MSG_ERROR([FastCGI library not found, try --without-fcgi])))
 AC_CHECK_LIB([yajl], [yajl_tree_parse])
-AC_CHECK_LIB([polarssl], [sha4])
+AC_CHECK_LIB([polarssl], [sha512])
 
 # Checks for header files.
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
