@@ -11,8 +11,8 @@
 #include <polarssl/sha512.h>
 #include <yajl/yajl_tree.h>
 
-#define PASSWORD_CHECK_WAIT 15
-#define CRED_CHECK_WAIT 3
+#define PASSWORD_CHECK_WAIT 5
+#define CRED_CHECK_WAIT 2
 
 #define CRED_RANDOM_DATA_LEN 20
 
@@ -212,5 +212,7 @@ bool valid_creds(yajl_val top)
 		printf("{\"errors\":[\"Invalid credentials.\"]}");
 		return false;
 	}
+
+	return true;
 }
 
