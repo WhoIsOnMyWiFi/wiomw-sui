@@ -127,7 +127,7 @@ void post_wiomw(yajl_val top)
 	passhash[0] = '\0';
 
 	strncpy(uci_lookup_str, AGENTKEY_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(agentkey, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND) {
 		astpnprintf(&terrors, &errlen, ",\"The agentkey has not yet been set in UCI.\"");
@@ -137,7 +137,7 @@ void post_wiomw(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve agentkey from UCI.\"]}");
 	}
 	strncpy(uci_lookup_str, USERNAME_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(username, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND) {
 		astpnprintf(&terrors, &errlen, ",\"The username has not yet been set in UCI.\"");
@@ -147,7 +147,7 @@ void post_wiomw(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve username from UCI.\"]}");
 	}
 	strncpy(uci_lookup_str, PASSHASH_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(passhash, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND) {
 		astpnprintf(&terrors, &errlen, ",\"The passhash has not yet been set in UCI.\"");

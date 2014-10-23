@@ -72,7 +72,7 @@ void post_wifi(yajl_val top)
 	psk[0] = '\0';
 
 	strncpy(uci_lookup_str, SSID_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(ssid, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND) {
 		astpnprintf(&terrors, &errlen, ",\"The ssid has not yet been set in UCI.\"");
@@ -82,7 +82,7 @@ void post_wifi(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve ssid from UCI.\"]}");
 	}
 	strncpy(uci_lookup_str, PSK_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(psk, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND) {
 		astpnprintf(&terrors, &errlen, ",\"The psk has not yet been set in UCI.\"");
@@ -99,9 +99,13 @@ void post_wifi(yajl_val top)
 
 	if (strnlen(ssid, BUFSIZ) != 0) {
 		astpnprintf(&tdata, &datalen, ",\"ssid\":\"%s\"", ssid);
+	} else {
+		astpnprintf(&terrors, &errlen, ",\"The ssid has not yet been set in UCI.\"");
 	}
 	if (strnlen(psk, BUFSIZ) != 0) {
 		astpnprintf(&tdata, &datalen, ",\"psk\":\"%s\"", psk);
+	} else {
+		astpnprintf(&terrors, &errlen, ",\"The psk has not yet been set in UCI.\"");
 	}
 
 	if (datalen == 0) {
