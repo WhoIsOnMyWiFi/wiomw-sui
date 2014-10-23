@@ -3,11 +3,20 @@
 /* Define to 1 if you have the <fcgi_stdio.h> header file. */
 #undef HAVE_FCGI_STDIO_H
 
+/* Define to 1 if you have the `getspnam' function. */
+#undef HAVE_GETSPNAM
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `crypt' library (-lcrypt). */
+#undef HAVE_LIBCRYPT
+
 /* Define to 1 if you have the `fcgi' library (-lfcgi). */
 #undef HAVE_LIBFCGI
+
+/* Define to 1 if you have the `polarssl' library (-lpolarssl). */
+#undef HAVE_LIBPOLARSSL
 
 /* Define to 1 if you have the `uci' library (-luci). */
 #undef HAVE_LIBUCI
@@ -22,8 +31,14 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the <shadow.h> header file. */
+#undef HAVE_SHADOW_H
+
 /* Define to 1 if stdbool.h conforms to C99. */
 #undef HAVE_STDBOOL_H
+
+/* Define to 1 if you have the <stddef.h> header file. */
+#undef HAVE_STDDEF_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -42,6 +57,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strnlen' function. */
+#undef HAVE_STRNLEN
 
 /* Define to 1 if you have the `strtoul' function. */
 #undef HAVE_STRTOUL

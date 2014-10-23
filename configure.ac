@@ -12,6 +12,7 @@ AC_PROG_CC
 # Checks for libraries.
 AC_SEARCH_LIBS([__isnan], [m])
 AC_SEARCH_LIBS([__isinf], [m])
+AC_CHECK_LIB([crypt], [crypt])
 AC_CHECK_LIB([uci], [uci_alloc_context])
 AC_ARG_WITH([fcgi],
    AC_HELP_STRING([--with-fcgi],
@@ -30,11 +31,12 @@ AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xno],
    AS_IF([test "x$use_fcgi" == xyes],
       AC_MSG_ERROR([FastCGI library not found, try --without-fcgi])))
 AC_CHECK_LIB([yajl], [yajl_tree_parse])
+AC_CHECK_LIB([polarssl], [sha4])
 
 # Checks for header files.
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
    [AC_CHECK_HEADERS([fcgi_stdio.h], , AC_MSG_ERROR([FastCGI headers not found]))])
-AC_CHECK_HEADERS([stdlib.h string.h syslog.h])
+AC_CHECK_HEADERS([shadow.h stddef.h stdlib.h string.h syslog.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -42,7 +44,8 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([stpcpy strdup strtoul])
+#AC_FUNC_STRNLEN
+AC_CHECK_FUNCS([getspnam stpcpy strdup strnlen strtoul])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile

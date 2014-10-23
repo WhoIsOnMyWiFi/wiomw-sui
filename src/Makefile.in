@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = wifi.cgi$(EXEEXT) wiomw.cgi$(EXEEXT)
+bin_PROGRAMS = sui.cgi$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -45,12 +45,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_wifi_cgi_OBJECTS = wifi_cgi.$(OBJEXT) wifi_uci.$(OBJEXT)
-wifi_cgi_OBJECTS = $(am_wifi_cgi_OBJECTS)
-wifi_cgi_LDADD = $(LDADD)
-am_wiomw_cgi_OBJECTS = wiomw_cgi.$(OBJEXT) wiomw_uci.$(OBJEXT)
-wiomw_cgi_OBJECTS = $(am_wiomw_cgi_OBJECTS)
-wiomw_cgi_LDADD = $(LDADD)
+am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
+	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT)
+sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
+sui_cgi_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -59,8 +57,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(wifi_cgi_SOURCES) $(wiomw_cgi_SOURCES)
-DIST_SOURCES = $(wifi_cgi_SOURCES) $(wiomw_cgi_SOURCES)
+SOURCES = $(sui_cgi_SOURCES)
+DIST_SOURCES = $(sui_cgi_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -150,8 +148,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-wifi_cgi_SOURCES = wifi_cgi.c wifi_uci.h wifi_uci.c
-wiomw_cgi_SOURCES = wiomw_cgi.c wiomw_uci.h wiomw_uci.c
+sui_cgi_SOURCES = main_cgi.c password.h password.c string_helpers.h string_helpers.c wifi.h wifi.c wiomw.h wiomw.c
 all: all-am
 
 .SUFFIXES:
@@ -223,12 +220,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-wifi.cgi$(EXEEXT): $(wifi_cgi_OBJECTS) $(wifi_cgi_DEPENDENCIES) $(EXTRA_wifi_cgi_DEPENDENCIES) 
-	@rm -f wifi.cgi$(EXEEXT)
-	$(LINK) $(wifi_cgi_OBJECTS) $(wifi_cgi_LDADD) $(LIBS)
-wiomw.cgi$(EXEEXT): $(wiomw_cgi_OBJECTS) $(wiomw_cgi_DEPENDENCIES) $(EXTRA_wiomw_cgi_DEPENDENCIES) 
-	@rm -f wiomw.cgi$(EXEEXT)
-	$(LINK) $(wiomw_cgi_OBJECTS) $(wiomw_cgi_LDADD) $(LIBS)
+sui.cgi$(EXEEXT): $(sui_cgi_OBJECTS) $(sui_cgi_DEPENDENCIES) $(EXTRA_sui_cgi_DEPENDENCIES) 
+	@rm -f sui.cgi$(EXEEXT)
+	$(LINK) $(sui_cgi_OBJECTS) $(sui_cgi_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -236,10 +230,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi_cgi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi_uci.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw_cgi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw_uci.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_cgi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
