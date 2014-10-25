@@ -17,7 +17,7 @@ void post_wifi(yajl_val top)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
-	size_t errlen = 0;
+	size_t errlen = BUFSIZ;
 	errors[0] = '\0';
 
 	const char* ssid_yajl_path[] = {"ssid", (const char*)0};
@@ -94,7 +94,7 @@ void post_wifi(yajl_val top)
 
 	char data[BUFSIZ];
 	char* tdata = data;
-	size_t datalen = 0;
+	size_t datalen = BUFSIZ;
 	data[0] = '\0';
 
 	if (strnlen(ssid, BUFSIZ) != 0) {
@@ -108,11 +108,11 @@ void post_wifi(yajl_val top)
 		astpnprintf(&terrors, &errlen, ",\"The psk has not yet been set in UCI.\"");
 	}
 
-	if (datalen == 0) {
+	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
-		if (errlen != 0) {
+		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
 			printf("]}");
@@ -126,7 +126,7 @@ void post_wifi(yajl_val top)
 	}
 
 	printf("{%s", data + 1);
-	if (errlen != 0) {
+	if (errlen != BUFSIZ) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {
 		printf("}");

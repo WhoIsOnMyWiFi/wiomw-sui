@@ -46,7 +46,7 @@ void post_wiomw(yajl_val top)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
-	size_t errlen = 0;
+	size_t errlen = BUFSIZ;
 	errors[0] = '\0';
 
 	const char* agentkey_yajl_path[] = {"agentkey", (const char*)0};
@@ -159,7 +159,7 @@ void post_wiomw(yajl_val top)
 
 	char data[BUFSIZ];
 	char* tdata = data;
-	size_t datalen = 0;
+	size_t datalen = BUFSIZ;
 	data[0] = '\0';
 
 	if (strnlen(agentkey, BUFSIZ) != 0) {
@@ -172,11 +172,11 @@ void post_wiomw(yajl_val top)
 		astpnprintf(&tdata, &datalen, ",\"passhash\":\"%s\"", passhash);
 	}
 
-	if (datalen == 0) {
+	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
-		if (errlen != 0) {
+		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
 			printf("]}");
@@ -190,7 +190,7 @@ void post_wiomw(yajl_val top)
 	}
 
 	printf("{%s", data + 1);
-	if (errlen != 0) {
+	if (errlen != BUFSIZ) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {
 		printf("}");
