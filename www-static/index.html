@@ -106,6 +106,15 @@ go_check_wiomw_creds = function() {
 				for (var i = 0; i < data.errors.length; i++) {
 					alert(data.errors[i]);
 				}
+				var username = '';
+				var agentkey = '';
+				if ('username' in data) {
+					username = data.username;
+				}
+				if ('agentkey' in data) {
+					agentkey = data.agentkey;
+				}
+				create_wiomw_login_form(username, agentkey);
 			} else if ('username' in data && 'passhash' in data && 'agentkey' in data) {
 				check_wiomw_creds(data.username, data.passhash, data.agentkey, function(username, passhash, agentkey) {create_wiomw_logged_in_status(username, agentkey);}, function(error) {alert('Previous Who Is On My WiFi credentials were invalid. This could be the result of a password change.');create_wiomw_login_form(data.username, data.agentkey);});
 			} else {

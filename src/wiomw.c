@@ -89,7 +89,7 @@ void post_wiomw(yajl_val top)
 			return;
 		} else {
 			if (strnlen(agentkey, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", AGENTKEY_UCI_PATH, agentkey);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", AGENTKEY_UCI_PATH, agentkey);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -100,7 +100,7 @@ void post_wiomw(yajl_val top)
 				}
 			}
 			if (strnlen(username, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", USERNAME_UCI_PATH, username);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", USERNAME_UCI_PATH, username);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -111,7 +111,7 @@ void post_wiomw(yajl_val top)
 				}
 			}
 			/*if (strnlen(passhash, BUFSIZ) != 0) {*/
-				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", PASSHASH_UCI_PATH, passhash);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PASSHASH_UCI_PATH, passhash);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -133,7 +133,8 @@ void post_wiomw(yajl_val top)
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(agentkey, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		astpnprintf(&terrors, &errlen, ",\"The agentkey has not yet been set in UCI.\"");
+		/* astpnprintf(&terrors, &errlen, ",\"The agentkey has not yet been set in UCI.\""); */
+		/* TODO: return default agentkey */
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
@@ -144,7 +145,7 @@ void post_wiomw(yajl_val top)
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(username, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		astpnprintf(&terrors, &errlen, ",\"The username has not yet been set in UCI.\"");
+		/* astpnprintf(&terrors, &errlen, ",\"The username has not yet been set in UCI.\""); */
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
@@ -155,7 +156,7 @@ void post_wiomw(yajl_val top)
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(passhash, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		astpnprintf(&terrors, &errlen, ",\"The passhash has not yet been set in UCI.\"");
+		/* astpnprintf(&terrors, &errlen, ",\"The passhash has not yet been set in UCI.\""); */
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
