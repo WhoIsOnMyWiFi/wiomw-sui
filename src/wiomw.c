@@ -132,7 +132,7 @@ void post_wiomw(yajl_val top)
 	strncpy(uci_lookup_str, AGENTKEY_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(agentkey, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND) {
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		astpnprintf(&terrors, &errlen, ",\"The agentkey has not yet been set in UCI.\"");
 	} else {
 		printf("Status: 500 Internal Server Error\n");
@@ -143,7 +143,7 @@ void post_wiomw(yajl_val top)
 	strncpy(uci_lookup_str, USERNAME_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(username, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND) {
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		astpnprintf(&terrors, &errlen, ",\"The username has not yet been set in UCI.\"");
 	} else {
 		printf("Status: 500 Internal Server Error\n");
@@ -154,7 +154,7 @@ void post_wiomw(yajl_val top)
 	strncpy(uci_lookup_str, PASSHASH_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(passhash, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND) {
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		astpnprintf(&terrors, &errlen, ",\"The passhash has not yet been set in UCI.\"");
 	} else {
 		printf("Status: 500 Internal Server Error\n");

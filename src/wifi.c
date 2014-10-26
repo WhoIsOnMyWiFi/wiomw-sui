@@ -76,7 +76,7 @@ void post_wifi(yajl_val top)
 	strncpy(uci_lookup_str, SSID_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(ssid, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND) {
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		astpnprintf(&terrors, &errlen, ",\"The ssid has not yet been set in UCI.\"");
 	} else {
 		printf("Status: 500 Internal Server Error\n");
@@ -86,7 +86,7 @@ void post_wifi(yajl_val top)
 	strncpy(uci_lookup_str, PSK_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(psk, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND) {
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		astpnprintf(&terrors, &errlen, ",\"The psk has not yet been set in UCI.\"");
 	} else {
 		printf("Status: 500 Internal Server Error\n");
