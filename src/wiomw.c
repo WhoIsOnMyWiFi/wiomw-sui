@@ -64,12 +64,15 @@ void post_wiomw(yajl_val top)
 	passhash[0] = '\0';
 	if (agentkey_yajl != NULL) {
 		/* TODO: validate */
+		strncpy(agentkey, YAJL_GET_STRING(agentkey_yajl), BUFSIZ);
 	}
 	if (username_yajl != NULL) {
 		/* TODO: validate */
+		strncpy(username, YAJL_GET_STRING(username_yajl), BUFSIZ);
 	}
 	if (passhash_yajl != NULL) {
 		/* TODO: validate */
+		strncpy(passhash, YAJL_GET_STRING(passhash_yajl), BUFSIZ);
 	}
 
 	struct uci_context* ctx;
@@ -135,6 +138,7 @@ void post_wiomw(yajl_val top)
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve agentkey from UCI.\"]}");
+		return;
 	}
 	strncpy(uci_lookup_str, USERNAME_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -145,6 +149,7 @@ void post_wiomw(yajl_val top)
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve username from UCI.\"]}");
+		return;
 	}
 	strncpy(uci_lookup_str, PASSHASH_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -155,6 +160,7 @@ void post_wiomw(yajl_val top)
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve passhash from UCI.\"]}");
+		return;
 	}
 
 	char data[BUFSIZ];

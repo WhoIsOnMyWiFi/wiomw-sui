@@ -31,9 +31,11 @@ void post_wifi(yajl_val top)
 	psk[0] = '\0';
 	if (ssid_yajl != NULL) {
 		/* TODO: validate */
+		strncpy(ssid, YAJL_GET_STRING(ssid_yajl), BUFSIZ);
 	}
 	if (psk_yajl != NULL) {
 		/* TODO: validate */
+		strncpy(psk, YAJL_GET_STRING(psk_yajl), BUFSIZ);
 	}
 
 	struct uci_context* ctx;
