@@ -86,7 +86,7 @@ void post_wiomw(yajl_val top)
 			return;
 		} else {
 			if (strnlen(agentkey, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", AGENTKEY_UCI_PATH, agentkey);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", AGENTKEY_UCI_PATH, agentkey);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -97,7 +97,7 @@ void post_wiomw(yajl_val top)
 				}
 			}
 			if (strnlen(username, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", USERNAME_UCI_PATH, username);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", USERNAME_UCI_PATH, username);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -108,7 +108,7 @@ void post_wiomw(yajl_val top)
 				}
 			}
 			/*if (strnlen(passhash, BUFSIZ) != 0) {*/
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PASSHASH_UCI_PATH, passhash);
+				snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", PASSHASH_UCI_PATH, passhash);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {

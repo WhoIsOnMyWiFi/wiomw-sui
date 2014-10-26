@@ -44,7 +44,7 @@ void post_wifi(yajl_val top)
 
 	if (valid && (strnlen(ssid, BUFSIZ) != 0 || strnlen(psk, BUFSIZ) != 0)) {
 		if (strnlen(ssid, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", SSID_UCI_PATH, ssid);
+			snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", SSID_UCI_PATH, ssid);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -55,7 +55,7 @@ void post_wifi(yajl_val top)
 			}
 		}
 		if (strnlen(psk, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PSK_UCI_PATH, psk);
+			snprintf(uci_lookup_str, BUFSIZ, "%s=\"%s\"", PSK_UCI_PATH, psk);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {

@@ -93,7 +93,7 @@ go_setup_wiomw_creds = function() {
 	var username = document.getElementById('wiomw_username').value;
 	var password = document.getElementById('wiomw_password').value;
 	var agentkey = document.getElementById('wiomw_agentkey').value;
-	setup_wiomw_agent(username, password, agentkey, '2', save_wiomw_creds, function(error) {alert(error);create_wiomw_login_form(username, agentkey);})
+	setup_wiomw_agent(username, password, agentkey, '1', save_wiomw_creds, function(error) {alert(error);create_wiomw_login_form(username, agentkey);})
 };
 go_check_wiomw_creds = function() {
 	document.getElementById('wiomw_submit').innerHTML = 'Loading... (this will take a few seconds)';
