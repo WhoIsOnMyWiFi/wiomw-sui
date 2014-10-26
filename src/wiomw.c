@@ -107,7 +107,7 @@ void post_wiomw(yajl_val top)
 					return;
 				}
 			}
-			if (strnlen(passhash, BUFSIZ) != 0) {
+			/*if (strnlen(passhash, BUFSIZ) != 0) {*/
 				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PASSHASH_UCI_PATH, passhash);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
@@ -117,7 +117,7 @@ void post_wiomw(yajl_val top)
 					printf("{\"errors\":[\"Unable to save passhash to UCI.\"]}");
 					return;
 				}
-			}
+			/*}*/
 			res = uci_commit(ctx, &(ptr.p), true);
 		}
 	}

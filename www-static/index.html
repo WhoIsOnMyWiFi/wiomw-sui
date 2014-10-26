@@ -1,2 +1,179 @@
 <!DOCTYPE html>
-<html><head><title>OpenWRT SUI</title><script type="text/javascript">var t=function(a,b){return function(c,d){return a.replace(/#{([^}]*)}/g,function(a,f){return Function("x","with(x)return "+f).call(c,d||b||{})})}},s=function(a,b){return b?{get:function(c){return a[c]&&b.parse(a[c])},set:function(c,d){a[c]=b.stringify(d)}}:{}}(this.localStorage||{},JSON),p=function(a,b,c,d){c=c||document;d=c[b="on"+b];a=c[b]=function(e){d=d&&d(e=e||c.event);return(a=a&&b(e))?b:d};c=this},m=function(a,b,c){b=document;c=b.createElement("p");c.innerHTML=a;for(a=b.createDocumentFragment();b=c.firstChild;)a.appendChild(b);return a},$=function(a,b){a=a.match(/^(\W)?(.*)/);return(b||document)["getElement"+(a[1]?a[1]=="#"?"ById":"sByClassName":"sByTagName")](a[2])},j=function(a){for(a=0;a<4;a++)try{return a?new ActiveXObject([,"Msxml2","Msxml3","Microsoft"][a]+".XMLHTTP"):new XMLHttpRequest}catch(b){}};</script></head><body><h1>OpenWRT Simple User Interface</h1><form><fieldset><legend>WiFi Setup</legend><ul id="errors"></ul><table><tr><td><label>WiFi Name</label></td><td><input type="text" id="ssid" disabled="true" /></td></tr><tr><td><label>WiFi Password</label></td><td><input type="text" id="psk" disabled="true" /></td></tr></table><input type="submit" value="Loading..." id="ws" disabled="true" /></fieldset></form><script type="text/javascript">var ors=function(a){return function(){d=JSON.parse(a.responseText);$('#errors').innerHTML='';if(d.hasOwnProperty('errors')){var i;for(i=0;i<d.errors.length;i++){$('#errors').appendChile(m('<li>'+d.errord[i]+'</li>'));}}$('#ssid').nodeValue=d.ssid;$('#psk').nodeValue=d.psk;$('#ws').nodeValue='Apply';$('#ssid').disabled=false;$('#psk').disabled=false;$('#ws').disabled=false;};};var dis=function(a){$('#ws').disabled=true;$('#ssid').disabled=true;$('#psk').disabled=true;$('#ws').nodeValue=a;};var url='/cgi-bin/wifi.cgi';b($('#ws'),'click',function(a){dis('Applying...');a=new j();a.open("POST",url,false);a.onreadystatechange=ors(a);a.send('{"ssid":"'+$('#ssid').nodeValue+'","psk":"'+$('#psk').nodeValue+'"}');});b(document,'load',function(a){dis('Retrieving...');a=new j();a.open("GET",url,false);a.onreadystatechange=ors(a);a.send();});</script></body></html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>OpenWRT SUI</title>
+		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/jquery-1.9.1.min.js">;</script>
+		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/jquery.json-2.4.min.js">;</script>
+		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/luci-app-wiomw-functions.js">;</script>
+		<script type="text/javascript">
+
+wifi_settings = function(initialCall) {
+	var ssid = document.getElementById('wifi_ssid').value;
+	var psk = document.getElementById('wifi_psk').value;
+	if (typeof initialCall === 'undefined' || initialCall == false) {
+		document.getElementById('wifi_submit').innerHTML = 'Saving... (this will take a few seconds)';
+	} else {
+		document.getElementById('wifi_submit').innerHTML = 'Loading... (this will take a few seconds)';
+	}
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', '/cgi-bin/sui.cgi?wifi');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+			}
+			if ('ssid' in data) {
+				document.getElementById('wifi_ssid').defaultValue = data.ssid;
+			}
+			if ('psk' in data) {
+				document.getElementById('wifi_psk').defaultValue = data.psk;
+			}
+			document.getElementById('wifi_submit').innerHTML = '<input type="submit" value="Save" onclick="wifi_settings();" />';
+		}
+	};
+	var content = {'psalt':document.getElementById('psalt').value,'phash':document.getElementById('phash').value};
+	if (ssid != '') {
+		content.ssid = ssid;
+	}
+	if (psk != '') {
+		content.psk = psk;
+	}
+	xhr.send(JSON.stringify(content));
+};
+
+wiomw_logout = function() {
+	save_wiomw_creds(document.getElementById('wiomw_username').value, '', document.getElementById('wiomw_agentkey').value);
+};
+create_wiomw_logged_in_status = function(username, agentkey) {
+	document.getElementById('wiomw_username').value = username;
+	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_agent_display">Agent</label></td><td><input type="text" id="wiomw_agent_display" value="' + agentkey + '" /></td>';
+	document.getElementById('wiomw_agentkey').value = agentkey;
+	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Logout" onclick="wiomw_logout();" />';
+};
+create_wiomw_login_form = function(username, agentkey) {
+	document.getElementById('wiomw_username').value = username;
+	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_password">Password</label></td><td><input type="password" id="wiomw_password" /></td>';
+	document.getElementById('wiomw_agentkey').value = agentkey;
+	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Login" onclick="go_setup_wiomw_creds();" />';
+};
+save_wiomw_creds = function(username, passhash, agentkey) {
+	document.getElementById('wiomw_submit').innerHTML = 'Saving... (this will take a few seconds)';
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', '/cgi-bin/sui.cgi?wiomw');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+				create_wiomw_login_form(username, agentkey);
+			} else if (passhash == '') {
+				create_wiomw_login_form(username, agentkey);
+			} else if ('username' in data && 'agentkey' in data) {
+				create_wiomw_logged_in_status(data.username, data.agentkey);
+			} else {
+				alert('Something strange happened. If you keep getting this message after loggin in, contact support.');
+				go_check_wiomw_creds();
+			}
+		}
+	};
+	xhr.send(JSON.stringify({'psalt':document.getElementById('psalt').value,
+				'phash':document.getElementById('phash').value,
+				'username':username,
+				'passhash':passhash,
+				'agentkey':agentkey,}));
+};
+go_setup_wiomw_creds = function() {
+	document.getElementById('wiomw_submit').innerHTML = 'Logging in...';
+	var username = document.getElementById('wiomw_username').value;
+	var password = document.getElementById('wiomw_password').value;
+	var agentkey = document.getElementById('wiomw_agentkey').value;
+	setup_wiomw_agent(username, password, agentkey, '2', save_wiomw_creds, function(error) {alert(error);create_wiomw_login_form(username, agentkey);})
+};
+go_check_wiomw_creds = function() {
+	document.getElementById('wiomw_submit').innerHTML = 'Loading... (this will take a few seconds)';
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', '/cgi-bin/sui.cgi?wiomw');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+			} else if ('username' in data && 'passhash' in data && 'agentkey' in data) {
+				check_wiomw_creds(data.username, data.passhash, data.agentkey, function(username, passhash, agentkey) {create_wiomw_logged_in_status(username, agentkey);}, function(error) {alert('Previous Who Is On My WiFi credentials were invalid. This could be the result of a password change.');create_wiomw_login_form(data.username, data.agentkey);});
+			} else {
+				var username = '';
+				var agentkey = '';
+				if ('username' in data) {
+					username = data.username;
+				}
+				if ('agentkey' in data) {
+					agentkey = data.agentkey;
+				}
+				create_wiomw_login_form(username, agentkey);
+			}
+		}
+	};
+	xhr.send(JSON.stringify({'psalt':document.getElementById('psalt').value,'phash':document.getElementById('phash').value}));
+};
+
+verify_code = function() {
+	document.getElementById('code_submit').innerHTML = 'Verifying... (this will take a while)';
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', '/cgi-bin/sui.cgi?password');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+				document.getElementById('code_submit').innerHTML = '<input type="submit" value="Verify" onclick="verify_code();" />';
+			} else if ('psalt' in data && 'phash' in data) {
+				document.getElementById('main').innerHTML = '<input type="hidden" id="psalt" value="' + data.psalt + '" /><input type="hidden" id="phash" value="' + data.phash + '" /><fieldset><legend>WiFi Settings</legend><table><tr><td><label for="wifi_ssid">WiFi Network Name</label></td><td><input type="text" id="wifi_ssid" /></td></tr><tr><td><label for="wifi_psk">WiFi Shared Password</label></td><td><input type="text" id="wifi_psk" /></td></tr><tr><td id="wifi_submit" colspan="2">Loading...</td></tr></table></fieldset><fieldset><legend>Who Is On My WiFi</legend><table><tr><td><label for="wiomw_username">Username</label></td><td><input type="text" id="wiomw_username" /></td></tr><tr id="wiomw_line2"><td colspan="2"></td></tr><tr><td id="wiomw_submit" colspan="2">Loading...</td></tr></table><input type="hidden" id="wiomw_agentkey" /></fieldset>';
+				wifi_settings(true);
+				go_check_wiomw_creds();
+			} else {
+				alert('The router appears to be very broken. Please contact support.');
+			}
+		}
+	};
+	xhr.send(JSON.stringify({'password':document.getElementById('vcode').value}));
+};
+		</script>
+	</head>
+	<body>
+		<h1>OpenWRT Simple UI</h1>
+		<h3>Powered by Who Is On My WiFi</h3>
+		<div id="main">
+			<fieldset>
+				<table>
+					<tr>
+						<td>
+							Please enter the router verification code.
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="text" id="vcode" />
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<div id="code_submit">
+								<input type="submit" value="Verify" onclick="verify_code();" />
+							</div>
+						</td>
+					</tr>
+				</table>
+			</fieldset>
+		</div>
+	</body>
+</html>
