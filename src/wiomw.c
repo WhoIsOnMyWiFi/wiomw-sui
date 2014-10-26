@@ -78,7 +78,7 @@ void post_wiomw(yajl_val top)
 	char uci_lookup_str[BUFSIZ];
 	ctx = uci_alloc_context();
 
-	if (valid && (strnlen(agentkey, BUFSIZ) != 0 || strnlen(username, BUFSIZ) != 0 || strnlen(passhash, BUFSIZ) != 0)) {
+	if (valid && (strnlen(agentkey, BUFSIZ) != 0 || strnlen(username, BUFSIZ) != 0)) {
 		if ((res = assure_wiomw_uci_entry(ctx)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
