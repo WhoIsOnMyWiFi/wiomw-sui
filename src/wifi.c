@@ -82,6 +82,7 @@ void post_wifi(yajl_val top)
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve ssid from UCI.\"]}");
+		return;
 	}
 	strncpy(uci_lookup_str, PSK_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -92,6 +93,7 @@ void post_wifi(yajl_val top)
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to retrieve psk from UCI.\"]}");
+		return;
 	}
 
 	char data[BUFSIZ];
@@ -119,6 +121,7 @@ void post_wifi(yajl_val top)
 		} else {
 			printf("]}");
 		}
+		return;
 	} else if (!valid) {
 		printf("Status: 422 Unprocessable Entity\n");
 		printf("Content-type: application/json\n\n");
