@@ -20,6 +20,7 @@
 #include "wiomw.h"
 #include "mac.h"
 #include "reboot.h"
+#include "wan_ip.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -67,6 +68,10 @@ int main()
 			} else if (strcmp(query, "reboot") == 0) {
 				if (valid_creds(top)) {
 					post_reboot();
+				}
+			} else if (strcmp(query, "wanip") == 0) {
+				if (valid_creds(top)) {
+					post_wan_ip(top);
 				}
 			} else {
 				printf("Status: 400 Bad Request\n");

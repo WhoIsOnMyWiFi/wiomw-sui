@@ -47,7 +47,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
 	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT) \
-	mac.$(OBJEXT) reboot.$(OBJEXT)
+	mac.$(OBJEXT) reboot.$(OBJEXT) wan_ip.$(OBJEXT)
 sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
 sui_cgi_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -155,7 +155,8 @@ sui_cgi_SOURCES = main_cgi.c \
 		  wifi.h wifi.c \
 		  wiomw.h wiomw.c \
 		  mac.h mac.c \
-		  reboot.h reboot.c
+		  reboot.h reboot.c \
+		  wan_ip.h wan_ip.c
 
 all: all-am
 
@@ -243,6 +244,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reboot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wan_ip.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw.Po@am__quote@
 

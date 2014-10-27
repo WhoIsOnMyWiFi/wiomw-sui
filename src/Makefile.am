@@ -5,4 +5,5 @@ sui_cgi_SOURCES = main_cgi.c \
 		  wifi.h wifi.c \
 		  wiomw.h wiomw.c \
 		  mac.h mac.c \
-		  reboot.h reboot.c
+		  reboot.h reboot.c \
+		  wan_ip.h wan_ip.c
