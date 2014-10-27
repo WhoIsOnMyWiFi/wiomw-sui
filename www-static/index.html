@@ -8,7 +8,28 @@
 		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/luci-app-wiomw-functions.js">;</script>
 		<script type="text/javascript">
 
+get_wan_mac = function() {
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', '/cgi-bin/sui.cgi?mac');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+			}
+			if ('mac' in data) {
+				document.getElementById('wan_mac').value = data.mac;
+			}
+		}
+	}
+	xhr.send();
+};
+
 wifi_settings = function(initialCall) {
+	document.getElementById('wifi_ssid').disabled = true;
+	document.getElementById('wifi_psk').disabled = true;
 	var ssid = document.getElementById('wifi_ssid').value;
 	var psk = document.getElementById('wifi_psk').value;
 	if (typeof initialCall === 'undefined' || initialCall == false) {
@@ -32,7 +53,10 @@ wifi_settings = function(initialCall) {
 			if ('psk' in data) {
 				document.getElementById('wifi_psk').defaultValue = data.psk;
 			}
+			document.getElementById('wifi_ssid').disabled = false;
+			document.getElementById('wifi_psk').disabled = false;
 			document.getElementById('wifi_submit').innerHTML = '<input type="submit" value="Save" onclick="wifi_settings();" />';
+			alert("You will need to reboot the router before any changes will take effect. Don't forget to switch to the new WiFi Name and/or WiFi Shared Password before trying to reconnect once the router has finished rebooting.");
 		}
 	};
 	var content = {'psalt':document.getElementById('psalt').value,'phash':document.getElementById('phash').value};
@@ -45,17 +69,37 @@ wifi_settings = function(initialCall) {
 	xhr.send(JSON.stringify(content));
 };
 
+reboot_router = function() {
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', '/cgi-bin/sui.cgi?reboot');
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == 4) {
+			var data = JSON.parse(xhr.responseText);
+			if ('errors' in data) {
+				for (var i = 0; i < data.errors.length; i++) {
+					alert(data.errors[i]);
+				}
+			} else {
+				alert("The router is rebooting now. It may be necessary to disconnect your computer from the WiFi and then reconnect once the router has finished rebooting.");
+			}
+		}
+	}
+	xhr.send(JSON.stringify({'psalt':document.getElementById('psalt').value,'phash':document.getElementById('phash').value}));
+};
+
 wiomw_logout = function() {
 	save_wiomw_creds(document.getElementById('wiomw_username').value, '', document.getElementById('wiomw_agentkey').value);
 };
 create_wiomw_logged_in_status = function(username, agentkey) {
 	document.getElementById('wiomw_username').value = username;
-	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_agent_display">Agent</label></td><td><input type="text" id="wiomw_agent_display" value="' + agentkey + '" /></td>';
+	document.getElementById('wiomw_username').disabled = true;
+	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_agent_display">Agent</label></td><td><input type="text" id="wiomw_agent_display" value="' + agentkey + '" disabled="true" /></td>';
 	document.getElementById('wiomw_agentkey').value = agentkey;
 	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Logout" onclick="wiomw_logout();" />';
 };
 create_wiomw_login_form = function(username, agentkey) {
 	document.getElementById('wiomw_username').value = username;
+	document.getElementById('wiomw_username').disabled = false;
 	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_password">Password</label></td><td><input type="password" id="wiomw_password" /></td>';
 	document.getElementById('wiomw_agentkey').value = agentkey;
 	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Login" onclick="go_setup_wiomw_creds();" />';
@@ -89,6 +133,8 @@ save_wiomw_creds = function(username, passhash, agentkey) {
 				'agentkey':agentkey,}));
 };
 go_setup_wiomw_creds = function() {
+	document.getElementById('wiomw_username').disabled = true;
+	document.getElementById('wiomw_password').disabled = true;
 	document.getElementById('wiomw_submit').innerHTML = 'Logging in...';
 	var username = document.getElementById('wiomw_username').value;
 	var password = document.getElementById('wiomw_password').value;
@@ -96,6 +142,7 @@ go_setup_wiomw_creds = function() {
 	setup_wiomw_agent(username, password, agentkey, '1', save_wiomw_creds, function(error) {alert(error);create_wiomw_login_form(username, agentkey);})
 };
 go_check_wiomw_creds = function() {
+	document.getElementById('wiomw_username').disabled = true;
 	document.getElementById('wiomw_submit').innerHTML = 'Loading... (this will take a few seconds)';
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', '/cgi-bin/sui.cgi?wiomw');
@@ -134,6 +181,7 @@ go_check_wiomw_creds = function() {
 };
 
 verify_code = function() {
+	document.getElementById('vcode').disabled = true;
 	document.getElementById('code_submit').innerHTML = 'Verifying... (this will take a while)';
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', '/cgi-bin/sui.cgi?password');
@@ -144,9 +192,11 @@ verify_code = function() {
 				for (var i = 0; i < data.errors.length; i++) {
 					alert(data.errors[i]);
 				}
+				document.getElementById('vcode').disabled = false;
 				document.getElementById('code_submit').innerHTML = '<input type="submit" value="Verify" onclick="verify_code();" />';
 			} else if ('psalt' in data && 'phash' in data) {
-				document.getElementById('main').innerHTML = '<input type="hidden" id="psalt" value="' + data.psalt + '" /><input type="hidden" id="phash" value="' + data.phash + '" /><fieldset><legend>WiFi Settings</legend><table><tr><td><label for="wifi_ssid">WiFi Network Name</label></td><td><input type="text" id="wifi_ssid" /></td></tr><tr><td><label for="wifi_psk">WiFi Shared Password</label></td><td><input type="text" id="wifi_psk" /></td></tr><tr><td id="wifi_submit" colspan="2">Loading...</td></tr></table></fieldset><fieldset><legend>Who Is On My WiFi</legend><table><tr><td><label for="wiomw_username">Username</label></td><td><input type="text" id="wiomw_username" /></td></tr><tr id="wiomw_line2"><td colspan="2"></td></tr><tr><td id="wiomw_submit" colspan="2">Loading...</td></tr></table><input type="hidden" id="wiomw_agentkey" /></fieldset>';
+				document.getElementById('main').innerHTML = '<input type="hidden" id="psalt" value="' + data.psalt + '" /><input type="hidden" id="phash" value="' + data.phash + '" /><fieldset><legend>WAN MAC Address</legend><table><tr><td colspan="2"><p>Sometimes your internet service provider (Comcast, AT&amp;T, Time Warner, Cox, Verizon, etc.) will ask you for your "Hardware Address" or your "MAC Address" when setting up service. In case they do, here it is:</p></td></tr><tr><td><label for="wan_mac">WAN MAC</label></td><td><input type="text" id="wan_mac" disabled="true" /></td></tr></table></fieldset><form><fieldset><legend>WiFi Settings</legend><table><tr><td><label for="wifi_ssid">WiFi Network Name</label></td><td><input type="text" id="wifi_ssid" disabled="true" /></td></tr><tr><td><label for="wifi_psk">WiFi Shared Password</label></td><td><input type="text" id="wifi_psk" disabled="true" /></td></tr><tr><td id="wifi_submit" colspan="2">Loading...</td></tr></table></fieldset></form><input type="submit" value="Reboot Router" onclick="reboot_router();" /><form><fieldset><legend>Who Is On My WiFi</legend><table><tr><td><label for="wiomw_username">Username</label></td><td><input type="text" id="wiomw_username" disabled="true" /></td></tr><tr id="wiomw_line2"><td colspan="2"></td></tr><tr><td id="wiomw_submit" colspan="2">Loading...</td></tr></table><input type="hidden" id="wiomw_agentkey" /></fieldset></form>';
+				get_wan_mac();
 				wifi_settings(true);
 				go_check_wiomw_creds();
 			} else {
@@ -162,27 +212,29 @@ verify_code = function() {
 		<h1>OpenWRT Simple UI</h1>
 		<h3>Powered by Who Is On My WiFi</h3>
 		<div id="main">
-			<fieldset>
-				<table>
-					<tr>
-						<td>
-							Please enter the router verification code.
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<input type="text" id="vcode" />
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<div id="code_submit">
-								<input type="submit" value="Verify" onclick="verify_code();" />
-							</div>
-						</td>
-					</tr>
-				</table>
-			</fieldset>
+			<form>
+				<fieldset>
+					<table>
+						<tr>
+							<td>
+								Please enter the router verification code.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<input type="text" id="vcode" />
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<div id="code_submit">
+									<input type="submit" value="Verify" onclick="verify_code();" />
+								</div>
+							</td>
+						</tr>
+					</table>
+				</fieldset>
+			</form>
 		</div>
 	</body>
 </html>

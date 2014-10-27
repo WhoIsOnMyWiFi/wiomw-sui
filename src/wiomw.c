@@ -23,7 +23,7 @@ int assure_wiomw_uci_entry(struct uci_context* ctx)
 	struct uci_ptr ptr;
 	int res = 0;
 	char* uci_string = strdup(WIOMW_UCI_PATH);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE && !(ptr.flags & UCI_LOOKUP_COMPLETE))) {
 		FILE* devnull = fopen("/dev/null", "r");
 		res = uci_import(ctx, devnull, uci_string, NULL, true);
 		fclose(devnull);
@@ -188,6 +188,7 @@ void post_wiomw(yajl_val top)
 		} else {
 			printf("]}");
 		}
+		return;
 	} else if (!valid) {
 		printf("Status: 422 Unprocessable Entity\n");
 		printf("Content-type: application/json\n\n");

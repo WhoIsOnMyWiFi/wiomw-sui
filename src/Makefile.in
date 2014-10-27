@@ -46,7 +46,8 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
-	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT)
+	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT) \
+	mac.$(OBJEXT) reboot.$(OBJEXT)
 sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
 sui_cgi_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -148,7 +149,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-sui_cgi_SOURCES = main_cgi.c password.h password.c string_helpers.h string_helpers.c wifi.h wifi.c wiomw.h wiomw.c
+sui_cgi_SOURCES = main_cgi.c \
+		  password.h password.c \
+		  string_helpers.h string_helpers.c \
+		  wifi.h wifi.c \
+		  wiomw.h wiomw.c \
+		  mac.h mac.c \
+		  reboot.h reboot.c
+
 all: all-am
 
 .SUFFIXES:
@@ -230,8 +238,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_cgi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reboot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw.Po@am__quote@

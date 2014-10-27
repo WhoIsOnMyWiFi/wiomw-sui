@@ -18,6 +18,8 @@
 #include "password.h"
 #include "wifi.h"
 #include "wiomw.h"
+#include "mac.h"
+#include "reboot.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -62,6 +64,10 @@ int main()
 				if (valid_creds(top)) {
 					post_wiomw(top);
 				}
+			} else if (strcmp(query, "reboot") == 0) {
+				if (valid_creds(top)) {
+					post_reboot();
+				}
 			} else {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
@@ -76,6 +82,8 @@ int main()
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");
+			} else if (strcmp(query, "mac") == 0) {
+				get_mac();
 			} else {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
