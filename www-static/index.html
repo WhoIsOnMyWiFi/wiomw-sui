@@ -28,8 +28,8 @@ get_wan_mac = function() {
 };
 
 wifi_settings = function(initialCall) {
-	document.getElementById('wifi_ssid').disabled = true;
-	document.getElementById('wifi_psk').disabled = true;
+	document.getElementById('wifi_ssid').readOnly = true;
+	document.getElementById('wifi_psk').readOnly = true;
 	var ssid = document.getElementById('wifi_ssid').value;
 	var psk = document.getElementById('wifi_psk').value;
 	if (typeof initialCall === 'undefined' || initialCall == false) {
@@ -53,8 +53,8 @@ wifi_settings = function(initialCall) {
 			if ('psk' in data) {
 				document.getElementById('wifi_psk').defaultValue = data.psk;
 			}
-			document.getElementById('wifi_ssid').disabled = false;
-			document.getElementById('wifi_psk').disabled = false;
+			document.getElementById('wifi_ssid').readOnly = false;
+			document.getElementById('wifi_psk').readOnly = false;
 			document.getElementById('wifi_submit').innerHTML = '<input type="submit" value="Save" onclick="wifi_settings();" />';
 			alert("You will need to reboot the router before any changes will take effect. Don't forget to switch to the new WiFi Name and/or WiFi Shared Password before trying to reconnect once the router has finished rebooting.");
 		}
@@ -92,14 +92,14 @@ wiomw_logout = function() {
 };
 create_wiomw_logged_in_status = function(username, agentkey) {
 	document.getElementById('wiomw_username').value = username;
-	document.getElementById('wiomw_username').disabled = true;
-	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_agent_display">Agent</label></td><td><input type="text" id="wiomw_agent_display" value="' + agentkey + '" disabled="true" /></td>';
+	document.getElementById('wiomw_username').readOnly = true;
+	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_agent_display">Agent</label></td><td><input type="text" id="wiomw_agent_display" value="' + agentkey + '" readonly="true" /></td>';
 	document.getElementById('wiomw_agentkey').value = agentkey;
 	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Logout" onclick="wiomw_logout();" />';
 };
 create_wiomw_login_form = function(username, agentkey) {
 	document.getElementById('wiomw_username').value = username;
-	document.getElementById('wiomw_username').disabled = false;
+	document.getElementById('wiomw_username').readOnly = false;
 	document.getElementById('wiomw_line2').innerHTML = '<td><label for="wiomw_password">Password</label></td><td><input type="password" id="wiomw_password" /></td>';
 	document.getElementById('wiomw_agentkey').value = agentkey;
 	document.getElementById('wiomw_submit').innerHTML = '<input type="submit" value="Login" onclick="go_setup_wiomw_creds();" />';
@@ -133,8 +133,8 @@ save_wiomw_creds = function(username, passhash, agentkey) {
 				'agentkey':agentkey,}));
 };
 go_setup_wiomw_creds = function() {
-	document.getElementById('wiomw_username').disabled = true;
-	document.getElementById('wiomw_password').disabled = true;
+	document.getElementById('wiomw_username').readOnly = true;
+	document.getElementById('wiomw_password').readOnly = true;
 	document.getElementById('wiomw_submit').innerHTML = 'Logging in...';
 	var username = document.getElementById('wiomw_username').value;
 	var password = document.getElementById('wiomw_password').value;
@@ -142,7 +142,7 @@ go_setup_wiomw_creds = function() {
 	setup_wiomw_agent(username, password, agentkey, '1', save_wiomw_creds, function(error) {alert(error);create_wiomw_login_form(username, agentkey);})
 };
 go_check_wiomw_creds = function() {
-	document.getElementById('wiomw_username').disabled = true;
+	document.getElementById('wiomw_username').readOnly = true;
 	document.getElementById('wiomw_submit').innerHTML = 'Loading... (this will take a few seconds)';
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', '/cgi-bin/sui.cgi?wiomw');
@@ -181,7 +181,7 @@ go_check_wiomw_creds = function() {
 };
 
 verify_code = function() {
-	document.getElementById('vcode').disabled = true;
+	document.getElementById('vcode').readOnly = true;
 	document.getElementById('code_submit').innerHTML = 'Verifying... (this will take a while)';
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', '/cgi-bin/sui.cgi?password');
@@ -192,10 +192,10 @@ verify_code = function() {
 				for (var i = 0; i < data.errors.length; i++) {
 					alert(data.errors[i]);
 				}
-				document.getElementById('vcode').disabled = false;
+				document.getElementById('vcode').readOnly = false;
 				document.getElementById('code_submit').innerHTML = '<input type="submit" value="Verify" onclick="verify_code();" />';
 			} else if ('psalt' in data && 'phash' in data) {
-				document.getElementById('main').innerHTML = '<input type="hidden" id="psalt" value="' + data.psalt + '" /><input type="hidden" id="phash" value="' + data.phash + '" /><fieldset><legend>WAN MAC Address</legend><table><tr><td colspan="2"><p>Sometimes your internet service provider (Comcast, AT&amp;T, Time Warner, Cox, Verizon, etc.) will ask you for your "Hardware Address" or your "MAC Address" when setting up service. In case they do, here it is:</p></td></tr><tr><td><label for="wan_mac">WAN MAC</label></td><td><input type="text" id="wan_mac" disabled="true" /></td></tr></table></fieldset><form><fieldset><legend>WiFi Settings</legend><table><tr><td><label for="wifi_ssid">WiFi Network Name</label></td><td><input type="text" id="wifi_ssid" disabled="true" /></td></tr><tr><td><label for="wifi_psk">WiFi Shared Password</label></td><td><input type="text" id="wifi_psk" disabled="true" /></td></tr><tr><td id="wifi_submit" colspan="2">Loading...</td></tr></table></fieldset></form><input type="submit" value="Reboot Router" onclick="reboot_router();" /><form><fieldset><legend>Who Is On My WiFi</legend><table><tr><td><label for="wiomw_username">Username</label></td><td><input type="text" id="wiomw_username" disabled="true" /></td></tr><tr id="wiomw_line2"><td colspan="2"></td></tr><tr><td id="wiomw_submit" colspan="2">Loading...</td></tr></table><input type="hidden" id="wiomw_agentkey" /></fieldset></form>';
+				document.getElementById('main').innerHTML = '<input type="hidden" id="psalt" value="' + data.psalt + '" /><input type="hidden" id="phash" value="' + data.phash + '" /><fieldset><legend>WAN MAC Address</legend><table><tr><td colspan="2"><p>Sometimes your internet service provider (Comcast, AT&amp;T, Time Warner, Cox, Verizon, etc.) will ask you for your "Hardware Address" or your "MAC Address" when setting up service. In case they do, here it is:</p></td></tr><tr><td><label for="wan_mac">WAN MAC</label></td><td><input type="text" id="wan_mac" readonly="true" /></td></tr></table></fieldset><form><fieldset><legend>WiFi Settings</legend><table><tr><td><label for="wifi_ssid">WiFi Network Name</label></td><td><input type="text" id="wifi_ssid" readonly="true" /></td></tr><tr><td><label for="wifi_psk">WiFi Shared Password</label></td><td><input type="text" id="wifi_psk" readonly="true" /></td></tr><tr><td id="wifi_submit" colspan="2">Loading...</td></tr></table></fieldset></form><input type="submit" value="Reboot Router" onclick="reboot_router();" /><form><fieldset><legend>Who Is On My WiFi</legend><table><tr><td><label for="wiomw_username">Username</label></td><td><input type="text" id="wiomw_username" readonly="true" /></td></tr><tr id="wiomw_line2"><td colspan="2"></td></tr><tr><td id="wiomw_submit" colspan="2">Loading...</td></tr></table><input type="hidden" id="wiomw_agentkey" /></fieldset></form>';
 				get_wan_mac();
 				wifi_settings(true);
 				go_check_wiomw_creds();
