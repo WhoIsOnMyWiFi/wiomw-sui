@@ -47,31 +47,31 @@ void post_wan_ip(yajl_val top)
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
 	if (dhcp_yajl == NULL || !YAJL_IS_TRUE(dhcp_yajl)) {
 		dhcp = false;
-		if (ipaddr_yajl != NULL) {
+	}
+	if (ipaddr_yajl != NULL) {
+		/* TODO: validate */
+		strncpy(ipaddr, YAJL_GET_STRING(ipaddr_yajl), BUFSIZ);
+	}
+	if (netmask_yajl != NULL) {
+		/* TODO: validate */
+		strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
+	}
+	if (gateway_yajl != NULL) {
+		/* TODO: validate */
+		strncpy(gateway, YAJL_GET_STRING(gateway_yajl), BUFSIZ);
+	}
+	if (dns_yajl != NULL) {
+		if (dns_yajl->u.array.len > 0) {
+			int i;
+			char* tdns = dns;
+			size_t dnslen = BUFSIZ;
 			/* TODO: validate */
-			strncpy(ipaddr, YAJL_GET_STRING(ipaddr_yajl), BUFSIZ);
-		}
-		if (netmask_yajl != NULL) {
-			/* TODO: validate */
-			strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
-		}
-		if (gateway_yajl != NULL) {
-			/* TODO: validate */
-			strncpy(gateway, YAJL_GET_STRING(gateway_yajl), BUFSIZ);
-		}
-		if (dns_yajl != NULL) {
-			if (dns_yajl->u.array.len > 0) {
-				int i;
-				char* tdns = dns;
-				size_t dnslen = BUFSIZ;
-				/* TODO: validate */
-				for (i = 0; i < dns_yajl->u.array.len; i++) {
-					astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
-					dns_count++;
-					if (dnslen > 0) {
-						dnslen--;
-						tdns++;
-					}
+			for (i = 0; i < dns_yajl->u.array.len; i++) {
+				astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
+				dns_count++;
+				if (dnslen > 0) {
+					dnslen--;
+					tdns++;
 				}
 			}
 		}
@@ -177,7 +177,7 @@ void post_wan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN IP address from UCI.\"]}");
+		printf("{\"errors\":[\"Unable to retrieve WAN DHCP status from UCI.\"]}");
 		return;
 	}
 	if (strncmp(proto, "dhcp", 5) == 0) {
