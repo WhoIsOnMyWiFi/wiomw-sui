@@ -56,7 +56,9 @@ wifi_settings = function(initialCall) {
 			document.getElementById('wifi_ssid').readOnly = false;
 			document.getElementById('wifi_psk').readOnly = false;
 			document.getElementById('wifi_submit').innerHTML = '<input type="submit" value="Save" onclick="wifi_settings();" />';
-			alert("You will need to reboot the router before any changes will take effect. Don't forget to switch to the new WiFi Name and/or WiFi Shared Password before trying to reconnect once the router has finished rebooting.");
+			if (typeof initialCall === 'undefined' || initialCall == false) {
+				alert("You will need to reboot the router before any changes will take effect. Don't forget to switch to the new WiFi Name and/or WiFi Shared Password before trying to reconnect once the router has finished rebooting.");
+			}
 		}
 	};
 	var content = {'psalt':document.getElementById('psalt').value,'phash':document.getElementById('phash').value};
