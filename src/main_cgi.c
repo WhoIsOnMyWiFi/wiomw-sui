@@ -69,9 +69,13 @@ int main()
 				if (valid_creds(top)) {
 					post_reboot();
 				}
-			} else if (strcmp(query, "wanip") == 0) {
+			} else if (strcmp(query, "wan_ip") == 0) {
 				if (valid_creds(top)) {
 					post_wan_ip(top);
+				}
+			} else if (strcmp(query, "lan_ip") == 0) {
+				if (valid_creds(top)) {
+					post_lan_ip(top);
 				}
 			} else {
 				printf("Status: 400 Bad Request\n");
