@@ -13,6 +13,8 @@
 #define PROTO_UCI_PATH "network.wan.proto"
 #define IPADDR_UCI_PATH "network.wan.ipaddr"
 #define NETMASK_UCI_PATH "network.wan.netmask"
+#define GATEWAY_UCI_PATH "network.wan.gateway"
+#define DNS_UCI_PATH "network.wan.dns"
 
 void post_wan_ip(yajl_val top)
 {
@@ -22,17 +24,25 @@ void post_wan_ip(yajl_val top)
 	errors[0] = '\0';
 
 	const char* dhcp_yajl_path[] = {"dhcp", (const char*)0};
-	const char* ipaddr_yajl_path[] = {"ipaddr", (const char*)0};
+	const char* ipaddr_yajl_path[] = {"ip", (const char*)0};
 	const char* netmask_yajl_path[] = {"netmask", (const char*)0};
+	const char* gateway_yajl_path[] = {"gateway", (const char*)0};
+	const char* dns_yajl_path[] = {"dns", (const char*)0};
 	yajl_val dhcp_yajl = yajl_tree_get(top, dhcp_yajl_path, yajl_t_any);
 	yajl_val ipaddr_yajl = yajl_tree_get(top, ipaddr_yajl_path, yajl_t_string);
 	yajl_val netmask_yajl = yajl_tree_get(top, netmask_yajl_path, yajl_t_string);
+	yajl_val gateway_yajl = yajl_tree_get(top, gateway_yajl_path, yajl_t_string);
+	yajl_val dns_yajl = yajl_tree_get(top, dns_yajl_path, yajl_t_array);
 	bool valid = true;
 	bool dhcp = true;
 	char ipaddr[BUFSIZ];
 	char netmask[BUFSIZ];
+	char gateway[BUFSIZ];
+	char dns[BUFSIZ];
 	ipaddr[0] = '\0';
 	netmask[0] = '\0';
+	gateway[0] = '\0';
+	dns[0] = '\0';
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
 	if (dhcp_yajl == NULL || !YAJL_IS_TRUE(dhcp_yajl)) {
 		dhcp = false;
@@ -44,6 +54,22 @@ void post_wan_ip(yajl_val top)
 			/* TODO: validate */
 			strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
 		}
+		if (gateway_yajl != NULL) {
+			/* TODO: validate */
+			strncpy(gateway, YAJL_GET_STRING(gateway_yajl), BUFSIZ);
+		}
+		if (dns_yajl != NULL) {
+			if (dns_yajl->u.array.len > 0) {
+				int i;
+				char* tdns = dns;
+				size_t dnslen = BUFSIZ;
+				/* TODO: validate */
+				astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[0]));
+				for (i = 1; i < dns_yajl->u.array.len; i++) {
+					astpnprintf(&tdns, &dnslen, " %s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
+				}
+			}
+		}
 	}
 
 	struct uci_context* ctx;
@@ -52,7 +78,11 @@ void post_wan_ip(yajl_val top)
 	char uci_lookup_str[BUFSIZ];
 	ctx = uci_alloc_context();
 
-	if (valid && (dhcp_yajl != NULL || strnlen(ipaddr, BUFSIZ) != 0 || strnlen(netmask, BUFSIZ) != 0)) {
+	if (valid && (dhcp_yajl != NULL
+				|| strnlen(ipaddr, BUFSIZ) != 0
+				|| strnlen(netmask, BUFSIZ) != 0
+				|| strnlen(gateway, BUFSIZ) != 0
+				|| strnlen(dns, BUFSIZ) != 0)) {
 		if (dhcp_yajl != NULL) {
 			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PROTO_UCI_PATH, dhcp? "dhcp" : "static");
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
@@ -86,6 +116,28 @@ void post_wan_ip(yajl_val top)
 				return;
 			}
 		}
+		if (strnlen(gateway, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", GATEWAY_UCI_PATH, gateway);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save WAN gateway to UCI.\"]}");
+				return;
+			}
+		}
+		if (strnlen(dns, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", DNS_UCI_PATH, dns);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}");
+				return;
+			}
+		}
 		res = uci_commit(ctx, &(ptr.p), true);
 	}
 
@@ -93,6 +145,8 @@ void post_wan_ip(yajl_val top)
 	proto[0] = '\0';
 	ipaddr[0] = '\0';
 	netmask[0] = '\0';
+	gateway[0] = '\0';
+	dns[0] = '\0';
 
 	strncpy(uci_lookup_str, PROTO_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -137,6 +191,36 @@ void post_wan_ip(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve WAN netmask from UCI.\"]}");
 		return;
 	}
+	strncpy(uci_lookup_str, GATEWAY_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+		strncpy(gateway, ptr.o->v.string, BUFSIZ);
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+		/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
+		/* TODO: get from ifconfig if dhcp */
+	} else {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}");
+		return;
+	}
+	strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+		int i;
+		char* tdns = dns;
+		size_t dnslen = BUFSIZ;
+		struct uci_element* elm;
+		uci_foreach_element(&(ptr.o->v.list), elm) {
+			astpnprintf(&tdns, &dnslen, ",\"%s\"", elm->name);
+		}
+	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+		/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
+		/* TODO: get from ifconfig if dhcp */
+	} else {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}");
+		return;
+	}
 
 	char data[BUFSIZ];
 	char* tdata = data;
@@ -149,6 +233,12 @@ void post_wan_ip(yajl_val top)
 	}
 	if (strnlen(netmask, BUFSIZ) != 0) {
 		astpnprintf(&tdata, &datalen, ",\"netmask\":\"%s\"", netmask);
+	}
+	if (strnlen(gateway, BUFSIZ) != 0) {
+		astpnprintf(&tdata, &datalen, ",\"gateway\":\"%s\"", gateway);
+	}
+	if (strnlen(dns, BUFSIZ) != 0) {
+		astpnprintf(&tdata, &datalen, ",\"dns\":[%s]", dns);
 	}
 
 	if (datalen == BUFSIZ) {
