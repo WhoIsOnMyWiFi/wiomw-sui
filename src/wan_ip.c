@@ -39,6 +39,7 @@ void post_wan_ip(yajl_val top)
 	char netmask[BUFSIZ];
 	char gateway[BUFSIZ];
 	char dns[BUFSIZ];
+	unsigned int dns_count = 0;
 	ipaddr[0] = '\0';
 	netmask[0] = '\0';
 	gateway[0] = '\0';
@@ -64,9 +65,13 @@ void post_wan_ip(yajl_val top)
 				char* tdns = dns;
 				size_t dnslen = BUFSIZ;
 				/* TODO: validate */
-				astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[0]));
-				for (i = 1; i < dns_yajl->u.array.len; i++) {
-					astpnprintf(&tdns, &dnslen, " %s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
+				for (i = 0; i < dns_yajl->u.array.len; i++) {
+					astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
+					dns_count++;
+					if (dnslen > 0) {
+						dnslen--;
+						tdns++;
+					}
 				}
 			}
 		}
@@ -128,10 +133,28 @@ void post_wan_ip(yajl_val top)
 			}
 		}
 		if (strnlen(dns, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", DNS_UCI_PATH, dns);
+			char* tdns = dns;
+			unsigned int i = 0;
+			snprintf(uci_lookup_str, BUFSIZ, "%s", DNS_UCI_PATH);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_delete(ctx, &ptr)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to change old WAN DNS servers in UCI.\"]}");
+				return;
+			}
+			for (i = 0; i < dns_count; i++) {
+				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", DNS_UCI_PATH, tdns);
+				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+						|| (res = uci_add_list(ctx, &ptr)) != UCI_OK) {
+					printf("Status: 500 Internal Server Error\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"Unable to add WAN DNS server to UCI.\"]}");
+					return;
+				}
+				tdns += strlen(tdns) + 1;
+			}
+			if ((res = uci_save(ctx, ptr.p) != UCI_OK)) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}");
@@ -238,7 +261,7 @@ void post_wan_ip(yajl_val top)
 		astpnprintf(&tdata, &datalen, ",\"gateway\":\"%s\"", gateway);
 	}
 	if (strnlen(dns, BUFSIZ) != 0) {
-		astpnprintf(&tdata, &datalen, ",\"dns\":[%s]", dns);
+		astpnprintf(&tdata, &datalen, ",\"dns\":[%s]", dns + 1);
 	}
 
 	if (datalen == BUFSIZ) {
