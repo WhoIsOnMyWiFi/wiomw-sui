@@ -10,11 +10,15 @@
 #include <unistd.h>
 #include <polarssl/sha512.h>
 #include <yajl/yajl_tree.h>
+#include <uci.h>
 
 #define PASSWORD_CHECK_WAIT 5
 #define CRED_CHECK_WAIT 2
 
 #define CRED_RANDOM_DATA_LEN 20
+
+#define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
+#define WIOMW_CHANGED_UCI_PATH "sui.changed.wiomw"
 
 #define PARTIAL_PASSWD_CMD "passwd >/dev/null; echo $? > "
 
@@ -124,6 +128,31 @@ void post_password(yajl_val top)
 	/* TODO: check data */
 	fclose(urandom);
 
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char uci_lookup_str[BUFSIZ];
+	bool setup = false;
+	ctx = uci_alloc_context();
+
+	strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
+		return;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to determine setup status.\"]}");
+			return;
+		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+			setup = true;
+		}
+	}
+
 	char* tpsalt = psalt_and_shash;
 	unsigned char* traw_psalt = raw_psalt;
 	for (traw_psalt = raw_psalt; traw_psalt - raw_psalt < CRED_RANDOM_DATA_LEN; traw_psalt++) {
@@ -150,7 +179,13 @@ void post_password(yajl_val top)
 
 	printf("Status: 200 OK\n");
 	printf("Content-type: application/json\n\n");
-	printf("{\"psalt\":\"%s\",\"phash\":\"%s\"}", psalt_and_shash, phash);
+	printf("{\"psalt\":\"%s\",\"phash\":\"%s\"", psalt_and_shash, phash);
+
+	if (setup) {
+		printf(",\"setup_required\":true}");
+	} else {
+		printf("}");
+	}
 }
 
 bool valid_creds(yajl_val top)

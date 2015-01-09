@@ -10,37 +10,11 @@
 
 #include "string_helpers.h"
 
-#define WIOMW_UCI_PATH "wiomw"
-#define AGENT_UCI_PATH "wiomw.agent"
-#define AGENT_ASSIGN_UCI_PATH AGENT_UCI_PATH "=wiomw-agent"
 #define AGENTKEY_UCI_PATH "wiomw.agent.agentkey"
-#define USERNAME_UCI_PATH "wiomw.agent.username"
-#define PASSHASH_UCI_PATH "wiomw.agent.passhash"
+#define PUBTOKEN_UCI_PATH "wiomw.agent.pubtoken"
+#define PRIVTOKEN_UCI_PATH "wiomw.agent.privtoken"
 #define AGENTKEY_PLACEHOLDER "openwrt-placeholder"
-
-int assure_wiomw_uci_entry(struct uci_context* ctx)
-{
-	struct uci_ptr ptr;
-	int res = 0;
-	char* uci_string = strdup(WIOMW_UCI_PATH);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_string, true)) == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE && !(ptr.flags & UCI_LOOKUP_COMPLETE))) {
-		FILE* devnull = fopen("/dev/null", "r");
-		res = uci_import(ctx, devnull, uci_string, NULL, true);
-		fclose(devnull);
-	} else if (res != UCI_OK) {
-		free(uci_string);
-		return res;
-	}
-	free(uci_string);
-	uci_string = strdup(AGENT_UCI_PATH);
-	if ((res = uci_lookup_ptr(ctx, &ptr, (uci_string = strdup(AGENT_ASSIGN_UCI_PATH)), true)) == UCI_OK
-			&& (res = uci_set(ctx, &ptr)) == UCI_OK
-			&& (res = uci_save(ctx, ptr.p)) == UCI_OK) {
-		uci_commit(ctx, &(ptr.p), true);
-	}
-	free(uci_string);
-	return res;
-}
+#define WIOMW_CHANGED_UCI_PATH "sui.changed.wiomw"
 
 void post_wiomw(yajl_val top)
 {
@@ -50,29 +24,29 @@ void post_wiomw(yajl_val top)
 	errors[0] = '\0';
 
 	const char* agentkey_yajl_path[] = {"agentkey", (const char*)0};
-	const char* username_yajl_path[] = {"username", (const char*)0};
-	const char* passhash_yajl_path[] = {"passhash", (const char*)0};
+	const char* pubtoken_yajl_path[] = {"pubtoken", (const char*)0};
+	const char* privtoken_yajl_path[] = {"privtoken", (const char*)0};
 	yajl_val agentkey_yajl = yajl_tree_get(top, agentkey_yajl_path, yajl_t_string);
-	yajl_val username_yajl = yajl_tree_get(top, username_yajl_path, yajl_t_string);
-	yajl_val passhash_yajl = yajl_tree_get(top, passhash_yajl_path, yajl_t_string);
+	yajl_val pubtoken_yajl = yajl_tree_get(top, pubtoken_yajl_path, yajl_t_string);
+	yajl_val privtoken_yajl = yajl_tree_get(top, privtoken_yajl_path, yajl_t_string);
 	bool valid = true;
 	char agentkey[BUFSIZ];
-	char username[BUFSIZ];
-	char passhash[BUFSIZ];
+	char pubtoken[BUFSIZ];
+	char privtoken[BUFSIZ];
 	agentkey[0] = '\0';
-	username[0] = '\0';
-	passhash[0] = '\0';
+	pubtoken[0] = '\0';
+	privtoken[0] = '\0';
 	if (agentkey_yajl != NULL) {
 		/* TODO: validate */
 		strncpy(agentkey, YAJL_GET_STRING(agentkey_yajl), BUFSIZ);
 	}
-	if (username_yajl != NULL) {
+	if (pubtoken_yajl != NULL) {
 		/* TODO: validate */
-		strncpy(username, YAJL_GET_STRING(username_yajl), BUFSIZ);
+		strncpy(pubtoken, YAJL_GET_STRING(pubtoken_yajl), BUFSIZ);
 	}
-	if (passhash_yajl != NULL) {
+	if (privtoken_yajl != NULL) {
 		/* TODO: validate */
-		strncpy(passhash, YAJL_GET_STRING(passhash_yajl), BUFSIZ);
+		strncpy(privtoken, YAJL_GET_STRING(privtoken_yajl), BUFSIZ);
 	}
 
 	struct uci_context* ctx;
@@ -81,53 +55,66 @@ void post_wiomw(yajl_val top)
 	char uci_lookup_str[BUFSIZ];
 	ctx = uci_alloc_context();
 
-	if (valid && (strnlen(agentkey, BUFSIZ) != 0 || strnlen(username, BUFSIZ) != 0)) {
-		if ((res = assure_wiomw_uci_entry(ctx)) != UCI_OK) {
+	if (valid && (strnlen(agentkey, BUFSIZ) != 0 || strnlen(pubtoken, BUFSIZ) != 0)) {
+		if (strnlen(agentkey, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, AGENTKEY_UCI_PATH "=%s", agentkey);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save agentkey to UCI.\"]}");
+				return;
+			}
+		}
+		if (strnlen(pubtoken, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, PUBTOKEN_UCI_PATH "=%s", pubtoken);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save pubtoken to UCI.\"]}");
+				return;
+			}
+		}
+		if (strnlen(privtoken, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, PRIVTOKEN_UCI_PATH "=%s", privtoken);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save privtoken to UCI.\"]}");
+				return;
+			}
+		} else {
+			strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_delete(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to delete old privtoken from UCI.\"]}");
+				return;
+			}
+		}
+		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
+				|| (res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| (res = uci_set(ctx, &ptr)) != UCI_OK
+				|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to access UCI package for wiomw.\"]}");
+			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");
 			return;
-		} else {
-			if (strnlen(agentkey, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", AGENTKEY_UCI_PATH, agentkey);
-				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-						|| (res = uci_set(ctx, &ptr)) != UCI_OK
-						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
-					printf("Status: 500 Internal Server Error\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to save agentkey to UCI.\"]}");
-					return;
-				}
-			}
-			if (strnlen(username, BUFSIZ) != 0) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", USERNAME_UCI_PATH, username);
-				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-						|| (res = uci_set(ctx, &ptr)) != UCI_OK
-						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
-					printf("Status: 500 Internal Server Error\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to save username to UCI.\"]}");
-					return;
-				}
-			}
-			/*if (strnlen(passhash, BUFSIZ) != 0) {*/
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PASSHASH_UCI_PATH, passhash);
-				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-						|| (res = uci_set(ctx, &ptr)) != UCI_OK
-						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
-					printf("Status: 500 Internal Server Error\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to save passhash to UCI.\"]}");
-					return;
-				}
-			/*}*/
-			res = uci_commit(ctx, &(ptr.p), true);
 		}
 	}
 
 	agentkey[0] = '\0';
-	username[0] = '\0';
-	passhash[0] = '\0';
+	pubtoken[0] = '\0';
+	privtoken[0] = '\0';
 
 	strncpy(uci_lookup_str, AGENTKEY_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -141,26 +128,26 @@ void post_wiomw(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve agentkey from UCI.\"]}");
 		return;
 	}
-	strncpy(uci_lookup_str, USERNAME_UCI_PATH, BUFSIZ);
+	strncpy(uci_lookup_str, PUBTOKEN_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		strncpy(username, ptr.o->v.string, BUFSIZ);
+		strncpy(pubtoken, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The username has not yet been set in UCI.\""); */
+		/* astpnprintf(&terrors, &errlen, ",\"The pubtoken has not yet been set in UCI.\""); */
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve username from UCI.\"]}");
+		printf("{\"errors\":[\"Unable to retrieve public token from UCI.\"]}");
 		return;
 	}
-	strncpy(uci_lookup_str, PASSHASH_UCI_PATH, BUFSIZ);
+	strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		strncpy(passhash, ptr.o->v.string, BUFSIZ);
+		strncpy(privtoken, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The passhash has not yet been set in UCI.\""); */
+		/* astpnprintf(&terrors, &errlen, ",\"The privtoken has not yet been set in UCI.\""); */
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve passhash from UCI.\"]}");
+		printf("{\"errors\":[\"Unable to retrieve private token from UCI.\"]}");
 		return;
 	}
 
@@ -172,12 +159,14 @@ void post_wiomw(yajl_val top)
 	if (strnlen(agentkey, BUFSIZ) != 0) {
 		astpnprintf(&tdata, &datalen, ",\"agentkey\":\"%s\"", agentkey);
 	}
-	if (strnlen(username, BUFSIZ) != 0) {
-		astpnprintf(&tdata, &datalen, ",\"username\":\"%s\"", username);
+	if (strnlen(pubtoken, BUFSIZ) != 0) {
+		astpnprintf(&tdata, &datalen, ",\"pubtoken\":\"%s\"", pubtoken);
 	}
-	if (strnlen(passhash, BUFSIZ) != 0) {
-		astpnprintf(&tdata, &datalen, ",\"passhash\":\"%s\"", passhash);
+	/*
+	if (strnlen(privtoken, BUFSIZ) != 0) {
+		astpnprintf(&tdata, &datalen, ",\"privtoken\":\"%s\"", privtoken);
 	}
+	*/
 
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");

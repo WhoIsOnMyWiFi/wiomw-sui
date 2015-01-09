@@ -12,6 +12,7 @@
 
 #define SSID_UCI_PATH "wireless.@wifi-iface[0].ssid"
 #define PSK_UCI_PATH "wireless.@wifi-iface[0].key"
+#define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
 
 void post_wifi(yajl_val top)
 {
@@ -45,8 +46,9 @@ void post_wifi(yajl_val top)
 	ctx = uci_alloc_context();
 
 	if (valid && (strnlen(ssid, BUFSIZ) != 0 || strnlen(psk, BUFSIZ) != 0)) {
+		bool psk_changed = false;
 		if (strnlen(ssid, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", SSID_UCI_PATH, ssid);
+			snprintf(uci_lookup_str, BUFSIZ, SSID_UCI_PATH "=%s", ssid);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -57,7 +59,7 @@ void post_wifi(yajl_val top)
 			}
 		}
 		if (strnlen(psk, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PSK_UCI_PATH, psk);
+			snprintf(uci_lookup_str, BUFSIZ, PSK_UCI_PATH "=%s", psk);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -66,8 +68,20 @@ void post_wifi(yajl_val top)
 				printf("{\"errors\":[\"Unable to save psk to UCI.\"]}");
 				return;
 			}
+			psk_changed = true;
 		}
-		res = uci_commit(ctx, &(ptr.p), true);
+		strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH "=1", BUFSIZ);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
+				|| (psk_changed
+					&& ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+						|| (res = uci_set(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+						|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK))) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to save WiFi to UCI.\"]}");
+			return;
+		}
 	}
 
 	ssid[0] = '\0';
