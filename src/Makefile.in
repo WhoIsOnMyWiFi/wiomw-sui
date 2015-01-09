@@ -49,7 +49,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
 	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT) \
 	mac.$(OBJEXT) reboot.$(OBJEXT) wan_ip.$(OBJEXT) \
-	lan_ip.$(OBJEXT) update.$(OBJEXT)
+	lan_ip.$(OBJEXT) update.$(OBJEXT) range_check.$(OBJEXT)
 sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
 am__DEPENDENCIES_1 =
 sui_cgi_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -169,7 +169,8 @@ sui_cgi_SOURCES = main_cgi.c \
 		  reboot.h reboot.c \
 		  wan_ip.h wan_ip.c \
 		  lan_ip.h lan_ip.c \
-		  update.h update.c 
+		  update.h update.c \
+		  range_check.h range_check.c
 
 AM_CFLAGS = ${CURL_CFLAGS}
 sui_cgi_LDADD = ${CURL_LIBS}
@@ -258,6 +259,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_cgi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/range_check.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reboot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update.Po@am__quote@

@@ -4,8 +4,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <uci.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <arpa/inet.h>
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
@@ -15,6 +17,81 @@
 #define NETMASK_UCI_PATH "network.wan.netmask"
 #define GATEWAY_UCI_PATH "network.wan.gateway"
 #define DNS_UCI_PATH "network.wan.dns"
+
+#define GET_WAN_COMMAND "ifconfig -a | awk '$1 == \"'`uci get network.wan.ifname`'\" {getline; if ($1 == \"inet\") {raddr = $2; split(raddr, saddr, \":\"); rmask = $4; split(rmask, smask, \":\"); print saddr[2] \" \" smask[2];}}'"
+
+bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
+{
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char tstr[BUFSIZ];
+	ctx = uci_alloc_context();
+
+	snprintf(tstr, BUFSIZ, "%s", PROTO_UCI_PATH);
+	if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
+			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	} else if (strncmp(ptr.o->v.string, "dhcp", 5) == 0) {
+		FILE* output = popen(GET_WAN_COMMAND, "r");
+		char* delim = tstr;
+
+		if (output == NULL) {
+			*base = 0;
+			*netmask = 0;
+		} else if (fgets(tstr, BUFSIZ, output) != 0) {
+			*base = 0;
+			*netmask = 0;
+		} else if ((delim = index(tstr, ' ')) == NULL) {
+			*base = 0;
+			*netmask = 0;
+		} else {
+			*delim = '\0';
+			if (inet_pton(AF_INET, tstr, base) != 1) {
+				*base = 0;
+				*netmask = 0;
+			} else if (inet_pton(AF_INET, delim + 1, netmask) != 1) {
+				*base = 0;
+				*netmask = 0;
+			}
+		}
+
+		pclose(output);
+		return false;
+	} else if (strncmp(ptr.o->v.string, "static", 7) == 0) {
+		snprintf(tstr, BUFSIZ, "%s", IPADDR_UCI_PATH);
+		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
+				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+			*base = 0;
+			*netmask = 0;
+			return false;
+		} else if (inet_pton(AF_INET, ptr.o->v.string, base) != 1) {
+			*base = 0;
+			*netmask = 0;
+			return false;
+		}
+
+		snprintf(tstr, BUFSIZ, "%s", NETMASK_UCI_PATH);
+		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
+				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+			*base = 0;
+			*netmask = 0;
+			return false;
+		} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) != 1) {
+			*base = 0;
+			*netmask = 0;
+			return false;
+		}
+
+		return true;
+	} else {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	}
+}
 
 void post_wan_ip(yajl_val top)
 {

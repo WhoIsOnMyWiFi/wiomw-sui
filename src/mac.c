@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define GET_MAC_COMMAND "ifconfig -a | grep `uci get network.wan.ifname` | awk '{print $5;}'"
+#define GET_MAC_COMMAND "ifconfig -a | awk '$1 == \"'`uci get network.wan.ifname`'\" {print $5;}'"
 
 void get_mac()
 {

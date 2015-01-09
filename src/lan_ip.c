@@ -6,12 +6,98 @@
 #include <uci.h>
 #include <stdlib.h>
 #include <syslog.h>
+#include <arpa/inet.h>
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
 
 #define IPADDR_UCI_PATH "network.lan.ipaddr"
 #define NETMASK_UCI_PATH "network.lan.netmask"
+#define LAN_CHANGED_UCI_PATH "sui.changed.lan"
+
+bool set_lan_ip4(const char* base, const char* netmask)
+{
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char uci_lookup_str[BUFSIZ];
+	uint32_t dummy = 0;
+
+	if (base == NULL
+			|| netmask == NULL
+			|| strlen(base) == 0
+			|| strlen(netmask) == 0
+			|| inet_pton(AF_INET, base, &dummy) != 1
+			|| inet_pton(AF_INET, netmask, &dummy) != 1) {
+		return false;
+	}
+
+	ctx = uci_alloc_context();
+
+	snprintf(uci_lookup_str, BUFSIZ, IPADDR_UCI_PATH "=%s", base);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| uci_set(ctx, &ptr) != UCI_OK
+			|| uci_save(ctx, ptr.p) != UCI_OK) {
+		return false;
+	}
+
+	snprintf(uci_lookup_str, BUFSIZ, NETMASK_UCI_PATH "=%s", netmask);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| uci_set(ctx, &ptr) != UCI_OK
+			|| uci_save(ctx, ptr.p) != UCI_OK) {
+		return false;
+	}
+
+	if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		return false;
+	}
+
+	return true;
+}
+
+bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
+{
+	bool changed = false;
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char uci_lookup_str[BUFSIZ];
+	ctx = uci_alloc_context();
+
+	strncpy(uci_lookup_str, LAN_CHANGED_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	}
+	changed = (atoi(ptr.o->v.string) == 1);
+
+	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	} else if (inet_pton(AF_INET, ptr.o->v.string, base) != 1) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	}
+
+	strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) != 1) {
+		*base = 0;
+		*netmask = 0;
+		return false;
+	}
+
+	return changed;
+}
 
 void post_lan_ip(yajl_val top)
 {
@@ -47,7 +133,7 @@ void post_lan_ip(yajl_val top)
 
 	if (valid && (strnlen(ipaddr, BUFSIZ) != 0 || strnlen(netmask, BUFSIZ) != 0)) {
 		if (strnlen(ipaddr, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", IPADDR_UCI_PATH, ipaddr);
+			snprintf(uci_lookup_str, BUFSIZ, IPADDR_UCI_PATH "=%s", ipaddr);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -58,7 +144,7 @@ void post_lan_ip(yajl_val top)
 			}
 		}
 		if (strnlen(netmask, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", NETMASK_UCI_PATH, netmask);
+			snprintf(uci_lookup_str, BUFSIZ, NETMASK_UCI_PATH "=%s", netmask);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
@@ -68,7 +154,18 @@ void post_lan_ip(yajl_val top)
 				return;
 			}
 		}
-		res = uci_commit(ctx, &(ptr.p), true);
+
+		strncpy(uci_lookup_str, LAN_CHANGED_UCI_PATH "=1", BUFSIZ);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
+				|| (res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| (res = uci_set(ctx, &ptr)) != UCI_OK
+				|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to save LAN data to UCI.\"]}");
+			return;
+		}
 	}
 
 	ipaddr[0] = '\0';
