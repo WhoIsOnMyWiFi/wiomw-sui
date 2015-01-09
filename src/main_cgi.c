@@ -21,6 +21,8 @@
 #include "mac.h"
 #include "reboot.h"
 #include "wan_ip.h"
+#include "lan_ip.h"
+#include "update.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -76,6 +78,10 @@ int main()
 			} else if (strcmp(query, "lan_ip") == 0) {
 				if (valid_creds(top)) {
 					post_lan_ip(top);
+				}
+			} else if (strcmp(query, "update") == 0) {
+				if (valid_creds(top)) {
+					post_update(top);
 				}
 			} else {
 				printf("Status: 400 Bad Request\n");

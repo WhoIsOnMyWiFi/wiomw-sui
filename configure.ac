@@ -30,22 +30,28 @@ AS_IF([test "x$use_fcgi" != xno],
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xno],
    AS_IF([test "x$use_fcgi" == xyes],
       AC_MSG_ERROR([FastCGI library not found, try --without-fcgi])))
+PKG_CHECK_MODULES([CURL], [libcurl])
+LIBCURL_CHECK_CONFIG
+AS_IF([test "x$libcurl_protocol_HTTPS" != xyes || test "x$libcurl_feature_SSL" != xyes],
+   [AC_MSG_ERROR([libcurl does not have HTTPS support enabled])])
 AC_CHECK_LIB([yajl], [yajl_tree_parse])
 AC_CHECK_LIB([polarssl], [sha512])
 
 # Checks for header files.
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
    [AC_CHECK_HEADERS([fcgi_stdio.h], , AC_MSG_ERROR([FastCGI headers not found]))])
-AC_CHECK_HEADERS([shadow.h stddef.h stdlib.h string.h syslog.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h shadow.h stddef.h stdint.h stdlib.h string.h syslog.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_TYPE_SIZE_T
+AC_TYPE_UINT32_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
+AC_FUNC_REALLOC
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([getspnam stpcpy strdup strnlen strtoul])
+AC_CHECK_FUNCS([getspnam stpcpy strdup strerror strnlen strtoul])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
