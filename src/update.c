@@ -2,6 +2,7 @@
 
 #include "update.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,7 +35,44 @@ struct data_holder {
 
 int version_compare(char* new)
 {
-	/* TODO */
+	if (strcmp(VERSION, new) == 0) {
+		return 0;
+	} else {
+		unsigned short state = 0;
+		size_t i = 0;
+		for (i = 0; new[i] != '\0'; i++) {
+			switch (state) {
+			case 0:
+				if (isdigit(new[i])) {
+					state = 1;
+				} else {
+					return -1;
+				}
+				break;
+			case 1:
+				if (new[i] == '.') {
+					state = 2;
+				} else if (isdigit(new[i])) {
+					state = 1;
+				} else {
+					return -1;
+				}
+				break;
+			case 2:
+				if (isdigit(new[i])) {
+					state = 1;
+				} else {
+					return -1;
+				}
+				break;
+			}
+		}
+		if (state == 1) {
+			return 1;
+		} else {
+			return -1;
+		}
+	}
 }
 
 static size_t latest_json_cb(void* buffer, size_t size, size_t nmemb, void* raw_holder)
