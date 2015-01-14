@@ -1,11 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-	<head>
-		<meta charset="utf-8" />
-		<title>OpenWRT SUI</title>
+  <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="initial-scale=1.0">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<link rel="stylesheet" href="css/styles.css">	
+	<title>OpenWRT SUI</title>
+		<!--
 		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/jquery-1.9.1.min.js">;</script>
 		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/jquery.json-2.4.min.js">;</script>
 		<script type="text/javascript" src="https://www.whoisonmywifi.net/js/luci-app-wiomw-functions.js">;</script>
+		-->
 		<script type="text/javascript">
 
 get_wan_mac = function() {
@@ -14,6 +19,7 @@ get_wan_mac = function() {
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == 4) {
 			var data = JSON.parse(xhr.responseText);
+			alert(data);
 			if ('errors' in data) {
 				for (var i = 0; i < data.errors.length; i++) {
 					alert(data.errors[i]);
@@ -183,13 +189,17 @@ go_check_wiomw_creds = function() {
 };
 
 verify_code = function() {
+	//alert('hello verify code');
+	
 	document.getElementById('vcode').readOnly = true;
 	document.getElementById('code_submit').innerHTML = 'Verifying... (this will take a while)';
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', '/cgi-bin/sui.cgi?password');
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == 4) {
+			alert(xhr.responseText);
 			var data = JSON.parse(xhr.responseText);
+			alert(data);
 			if ('errors' in data) {
 				for (var i = 0; i < data.errors.length; i++) {
 					alert(data.errors[i]);
@@ -206,11 +216,51 @@ verify_code = function() {
 			}
 		}
 	};
-	xhr.send(JSON.stringify({'password':document.getElementById('vcode').value}));
+	alert(document.getElementById('vcode').value);
+	var json_data = JSON.stringify({'password':document.getElementById('vcode').value});
+	alert(json_data);
+	xhr.send(json_data);
+	
 };
 		</script>
 	</head>
 	<body>
+		<div class="header-row">
+		  <div class="container">
+		    <h1>Welcome To  <em class="clean-underline">Your</em> WiFi </h1>
+		  </div>
+		</div>	
+	
+		<div class="container main">	
+		  <!--Please note, due to security restrictions, all code for router must be in single index.html to not allow breaches-->
+		  <form>
+		    <div class="row">
+		      <div class="twelve columns">
+			<legend>
+			  Please enter your Who's On My WiFi™ <em class="clean-underline">Product Key</em> To Continue:
+			</legend>
+		      </div>
+		    </div>
+
+		    <div class="row">
+		      <div class="one-third column">
+			<input placeholder="Enter Key Here" type="text"  id="vcode"  class="u-full-width">
+		      </div>
+		      <div class="two-thirds column">
+			<button class="button-primary u-float-left" onclick="verify_code();">SUBMIT KEY</button>
+		      </div>
+		    </div>
+
+		    <div class="row">
+		      <div class="twelve columns"  id="code_submit">
+			<span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.</span>
+		      </div>
+		    </div>
+
+
+		  </form>
+	      </div>	
+		<!--
 		<h1>OpenWRT Simple UI</h1>
 		<h3>Powered by Who Is On My WiFi</h3>
 		<div id="main">
@@ -218,6 +268,7 @@ verify_code = function() {
 				<fieldset>
 					<table>
 						<tr>
+						
 							<td>
 								Please enter the router verification code.
 							</td>
@@ -238,5 +289,6 @@ verify_code = function() {
 				</fieldset>
 			</form>
 		</div>
+		-->
 	</body>
 </html>
