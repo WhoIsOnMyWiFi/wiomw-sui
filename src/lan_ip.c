@@ -65,7 +65,8 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 	ctx = uci_alloc_context();
 
 	strncpy(uci_lookup_str, LAN_CHANGED_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 		*base = 0;
 		*netmask = 0;
 		return false;

@@ -40,21 +40,21 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 
 		if (output == NULL) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 		} else if (fgets(tstr, BUFSIZ, output) != 0) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 		} else if ((delim = index(tstr, ' ')) == NULL) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 		} else {
 			*delim = '\0';
 			if (inet_pton(AF_INET, tstr, base) != 1) {
 				*base = 0;
-				*netmask = 0;
+				*netmask = 32;
 			} else if (inet_pton(AF_INET, delim + 1, netmask) != 1) {
 				*base = 0;
-				*netmask = 0;
+				*netmask = 32;
 			}
 		}
 
@@ -65,11 +65,11 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 			return false;
 		} else if (inet_pton(AF_INET, ptr.o->v.string, base) != 1) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 			return false;
 		}
 
@@ -77,18 +77,18 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 			return false;
 		} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) != 1) {
 			*base = 0;
-			*netmask = 0;
+			*netmask = 32;
 			return false;
 		}
 
 		return true;
 	} else {
 		*base = 0;
-		*netmask = 0;
+		*netmask = 32;
 		return false;
 	}
 }
@@ -249,7 +249,8 @@ void post_wan_ip(yajl_val top)
 	dns[0] = '\0';
 
 	strncpy(uci_lookup_str, PROTO_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(proto, ptr.o->v.string, BUFSIZ);
 	} else {
 		printf("Status: 500 Internal Server Error\n");
@@ -268,7 +269,8 @@ void post_wan_ip(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(ipaddr, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The WAN IP address has not yet been set in UCI.\""); */
@@ -280,7 +282,8 @@ void post_wan_ip(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(netmask, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The WAN netmask has not yet been set in UCI.\""); */
@@ -292,7 +295,8 @@ void post_wan_ip(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, GATEWAY_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(gateway, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
@@ -304,7 +308,8 @@ void post_wan_ip(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		int i;
 		char* tdns = dns;
 		size_t dnslen = BUFSIZ;
