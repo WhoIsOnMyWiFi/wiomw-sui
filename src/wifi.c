@@ -17,6 +17,12 @@
 #define WIFI_DISABLED_UCI_PATH "wireless.@wifi-device[0].disabled"
 #define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
 
+#define DUAL_RADIO_UCI_PATH "sui.system.dualradio"
+#define DUAL_SSID_UCI_PATH "wireless.@wifi-iface[1].ssid"
+#define DUAL_PSK_UCI_PATH "wireless.@wifi-iface[1].key"
+#define DUAL_ENCRYPTION_MODE_UCI_PATH "wireless.@wifi-iface[1].encryption"
+#define DUAL_WIFI_DISABLED_UCI_PATH "wireless.@wifi-device[1].disabled"
+
 void post_wifi(yajl_val top)
 {
 	char errors[BUFSIZ];
@@ -56,6 +62,20 @@ void post_wifi(yajl_val top)
 
 	if (valid && (strnlen(ssid, BUFSIZ) != 0 || strnlen(psk, BUFSIZ) != 0)) {
 		bool psk_changed = false;
+		bool dual_radios = false;
+
+		strcpy(uci_lookup_str, DUAL_RADIO_UCI_PATH);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to retrieve the number of wifi cards effected.\"]}");
+			return;
+		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0 && strncmp(ptr.o->v.string, "1", 2) == 0) {
+			dual_radios = true;
+		} else {
+			dual_radios = false;
+		}
+
 		if (strnlen(ssid, BUFSIZ) != 0) {
 			snprintf(uci_lookup_str, BUFSIZ, SSID_UCI_PATH "=%s", ssid);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
@@ -65,6 +85,17 @@ void post_wifi(yajl_val top)
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save ssid to UCI.\"]}");
 				return;
+			}
+			if (dual_radios) {
+				snprintf(uci_lookup_str, BUFSIZ, DUAL_SSID_UCI_PATH "=%s", ssid);
+				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+						|| (res = uci_set(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					printf("Status: 500 Internal Server Error\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"Unable to save ssid of second wifi radio to UCI.\"]}");
+					return;
+				}
 			}
 		}
 		if (strnlen(psk, BUFSIZ) != 0) {
@@ -76,6 +107,17 @@ void post_wifi(yajl_val top)
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save psk to UCI.\"]}");
 				return;
+			}
+			if (dual_radios) {
+				snprintf(uci_lookup_str, BUFSIZ, DUAL_PSK_UCI_PATH "=%s", psk);
+				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+						|| (res = uci_set(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					printf("Status: 500 Internal Server Error\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"Unable to save psk of second wifi radio to UCI.\"]}");
+					return;
+				}
 			}
 			psk_changed = true;
 		}
@@ -96,6 +138,26 @@ void post_wifi(yajl_val top)
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Unable to save wifi autostart to UCI.\"]}");
 			return;
+		}
+		if (dual_radios) {
+			strcpy(uci_lookup_str, DUAL_ENCRYPTION_MODE_UCI_PATH "=" WPA2_ONLY_ENCRYPTION_MODE);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save WPA2 mode of second wifi radio to UCI.\"]}");
+				return;
+			}
+			strcpy(uci_lookup_str, DUAL_WIFI_DISABLED_UCI_PATH);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_delete(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to save wifi autostart of second wifi radio to UCI.\"]}");
+				return;
+			}
 		}
 		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
