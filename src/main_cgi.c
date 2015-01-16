@@ -93,7 +93,7 @@ int main()
 			}
 			free(data);
 		} else if (strcmp(method, "GET") == 0 || strcmp(method, "HEAD") == 0) {
-			if (getenv == NULL) {
+			if (query == NULL) {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");

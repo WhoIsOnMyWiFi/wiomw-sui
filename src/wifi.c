@@ -12,6 +12,9 @@
 
 #define SSID_UCI_PATH "wireless.@wifi-iface[0].ssid"
 #define PSK_UCI_PATH "wireless.@wifi-iface[0].key"
+#define ENCRYPTION_MODE_UCI_PATH "wireless.@wifi-iface[0].encryption"
+#define WPA2_ONLY_ENCRYPTION_MODE "psk2+ccmp"
+#define WIFI_DISABLED_UCI_PATH "wireless.@wifi-device[0].disabled"
 #define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
 
 void post_wifi(yajl_val top)
@@ -31,12 +34,18 @@ void post_wifi(yajl_val top)
 	ssid[0] = '\0';
 	psk[0] = '\0';
 	if (ssid_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(ssid_yajl);
 		/* TODO: validate */
-		strncpy(ssid, YAJL_GET_STRING(ssid_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(ssid, tstr, BUFSIZ);
+		}
 	}
 	if (psk_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(psk_yajl);
 		/* TODO: validate */
-		strncpy(psk, YAJL_GET_STRING(psk_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(psk, tstr, BUFSIZ);
+		}
 	}
 
 	struct uci_context* ctx;
@@ -70,16 +79,39 @@ void post_wifi(yajl_val top)
 			}
 			psk_changed = true;
 		}
-		strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH "=1", BUFSIZ);
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
-				|| (psk_changed
-					&& ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-						|| (res = uci_set(ctx, &ptr)) != UCI_OK
-						|| (res = uci_save(ctx, ptr.p)) != UCI_OK
-						|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK))) {
+		strcpy(uci_lookup_str, ENCRYPTION_MODE_UCI_PATH "=" WPA2_ONLY_ENCRYPTION_MODE);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| (res = uci_set(ctx, &ptr)) != UCI_OK
+				|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to save WPA2 mode to UCI.\"]}");
+			return;
+		}
+		strcpy(uci_lookup_str, WIFI_DISABLED_UCI_PATH);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| (res = uci_delete(ctx, &ptr)) != UCI_OK
+				|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to save wifi autostart to UCI.\"]}");
+			return;
+		}
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Unable to save WiFi to UCI.\"]}");
+			return;
+		}
+		strcpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH "=1");
+		if (psk_changed
+				&& ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+						|| (res = uci_set(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+						|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK)) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to set WiFi as having been setup.\"]}");
 			return;
 		}
 	}

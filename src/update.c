@@ -117,8 +117,6 @@ static struct data_holder*  get_latest_json()
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, error_buffer);
 
 	if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
-		size_t datalen;
-
 		if (holder == NULL) {
 			curl_easy_cleanup(curl_handle);
 			free(holder);
@@ -381,7 +379,6 @@ void post_update(yajl_val api_yajl)
 			printf("Content-type: application/json\n\n");
 			printf("{\"version\":\"%s\",\"size\":%lld,\"md5\":\"%s\",\"update\":\"ready\"}", YAJL_GET_STRING(latest_version_yajl), YAJL_GET_INTEGER(latest_size_yajl), YAJL_GET_STRING(latest_md5_yajl));
 			free(holder);
-			pclose(command_output);
 			return;
 		}
 		/* new update file should be downloaded */
@@ -429,7 +426,7 @@ void post_update(yajl_val api_yajl)
 			return;
 		} else if (stat(UPGRADE_FILE, &stat_res) != 0) {
 			/* unable to access new update file */
-			int my_errno;
+			int my_errno = errno;
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Error while reading the downloaded update file.\"],");

@@ -37,16 +37,25 @@ void post_wiomw(yajl_val top)
 	pubtoken[0] = '\0';
 	privtoken[0] = '\0';
 	if (agentkey_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(agentkey_yajl);
 		/* TODO: validate */
-		strncpy(agentkey, YAJL_GET_STRING(agentkey_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(agentkey, tstr, BUFSIZ);
+		}
 	}
 	if (pubtoken_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(pubtoken_yajl);
 		/* TODO: validate */
-		strncpy(pubtoken, YAJL_GET_STRING(pubtoken_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(pubtoken, tstr, BUFSIZ);
+		}
 	}
 	if (privtoken_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(privtoken_yajl);
 		/* TODO: validate */
-		strncpy(privtoken, YAJL_GET_STRING(privtoken_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(privtoken, tstr, BUFSIZ);
+		}
 	}
 
 	struct uci_context* ctx;
@@ -91,23 +100,29 @@ void post_wiomw(yajl_val top)
 		} else {
 			strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| (res = uci_delete(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0
+						&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
+							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to delete old privtoken from UCI.\"]}");
 				return;
 			}
 		}
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");
+			return;
+		}
 		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
-				|| (res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 				|| (res = uci_set(ctx, &ptr)) != UCI_OK
 				|| (res = uci_save(ctx, ptr.p)) != UCI_OK
 				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");
+			printf("{\"errors\":[\"Unable to mark wiomw as having been setup.\"]}");
 			return;
 		}
 	}
@@ -117,7 +132,8 @@ void post_wiomw(yajl_val top)
 	privtoken[0] = '\0';
 
 	strncpy(uci_lookup_str, AGENTKEY_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(agentkey, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The agentkey has not yet been set in UCI.\""); */
@@ -129,7 +145,8 @@ void post_wiomw(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, PUBTOKEN_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(pubtoken, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The pubtoken has not yet been set in UCI.\""); */
@@ -140,7 +157,8 @@ void post_wiomw(yajl_val top)
 		return;
 	}
 	strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK && (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
 		strncpy(privtoken, ptr.o->v.string, BUFSIZ);
 	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
 		/* astpnprintf(&terrors, &errlen, ",\"The privtoken has not yet been set in UCI.\""); */
@@ -187,7 +205,8 @@ void post_wiomw(yajl_val top)
 	}
 
 	printf("{%s", data + 1);
-	if (errlen != BUFSIZ) {
+	/* terrors check isn't really necessary... */
+	if (errlen != BUFSIZ && terrors != errors) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {
 		printf("}");

@@ -65,13 +65,13 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 	ctx = uci_alloc_context();
 
 	strncpy(uci_lookup_str, LAN_CHANGED_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
 		*base = 0;
 		*netmask = 0;
 		return false;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		changed = (atoi(ptr.o->v.string) == 1);
 	}
-	changed = (atoi(ptr.o->v.string) == 1);
 
 	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
@@ -118,12 +118,18 @@ void post_lan_ip(yajl_val top)
 	netmask[0] = '\0';
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
 	if (ipaddr_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
 		/* TODO: validate */
-		strncpy(ipaddr, YAJL_GET_STRING(ipaddr_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(ipaddr, tstr, BUFSIZ);
+		}
 	}
 	if (netmask_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(netmask_yajl);
 		/* TODO: validate */
-		strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(netmask, tstr, BUFSIZ);
+		}
 	}
 
 	struct uci_context* ctx;

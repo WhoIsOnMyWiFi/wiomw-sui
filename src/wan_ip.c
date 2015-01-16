@@ -40,21 +40,31 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 
 		if (output == NULL) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
+			pclose(output);
+			return false;
 		} else if (fgets(tstr, BUFSIZ, output) != 0) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
+			pclose(output);
+			return false;
 		} else if ((delim = index(tstr, ' ')) == NULL) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
+			pclose(output);
+			return false;
 		} else {
 			*delim = '\0';
 			if (inet_pton(AF_INET, tstr, base) != 1) {
 				*base = 0;
-				*netmask = 32;
+				*netmask = 0;
+				pclose(output);
+				return false;
 			} else if (inet_pton(AF_INET, delim + 1, netmask) != 1) {
 				*base = 0;
-				*netmask = 32;
+				*netmask = 0;
+				pclose(output);
+				return false;
 			}
 		}
 
@@ -65,11 +75,11 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
 			return false;
 		} else if (inet_pton(AF_INET, ptr.o->v.string, base) != 1) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
 			return false;
 		}
 
@@ -77,18 +87,18 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
 			return false;
 		} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) != 1) {
 			*base = 0;
-			*netmask = 32;
+			*netmask = 0;
 			return false;
 		}
 
 		return true;
 	} else {
 		*base = 0;
-		*netmask = 32;
+		*netmask = 0;
 		return false;
 	}
 }
@@ -126,16 +136,25 @@ void post_wan_ip(yajl_val top)
 		dhcp = false;
 	}
 	if (ipaddr_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
 		/* TODO: validate */
-		strncpy(ipaddr, YAJL_GET_STRING(ipaddr_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(ipaddr, tstr, BUFSIZ);
+		}
 	}
 	if (netmask_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(netmask_yajl);
 		/* TODO: validate */
-		strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(netmask, tstr, BUFSIZ);
+		}
 	}
 	if (gateway_yajl != NULL) {
+		char* tstr = YAJL_GET_STRING(gateway_yajl);
 		/* TODO: validate */
-		strncpy(gateway, YAJL_GET_STRING(gateway_yajl), BUFSIZ);
+		if (tstr != NULL) {
+			strncpy(gateway, tstr, BUFSIZ);
+		}
 	}
 	if (dns_yajl != NULL) {
 		if (dns_yajl->u.array.len > 0) {
@@ -310,7 +329,6 @@ void post_wan_ip(yajl_val top)
 	strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
 			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		int i;
 		char* tdns = dns;
 		size_t dnslen = BUFSIZ;
 		struct uci_element* elm;
@@ -365,7 +383,8 @@ void post_wan_ip(yajl_val top)
 	}
 
 	printf("{%s", data + 1);
-	if (errlen != BUFSIZ) {
+	/* terrors check isn't really necessary */
+	if (errlen != BUFSIZ && terrors != errors) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {
 		printf("}");
