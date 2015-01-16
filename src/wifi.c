@@ -70,7 +70,7 @@ void post_wifi(yajl_val top)
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Unable to retrieve the number of wifi cards effected.\"]}");
 			return;
-		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0 && strncmp(ptr.o->v.string, "1", 2) == 0) {
+		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0 && strncmp(ptr.o->v.string, "1", 2) == 0) {
 			dual_radios = true;
 		} else {
 			dual_radios = false;
@@ -132,8 +132,9 @@ void post_wifi(yajl_val top)
 		}
 		strcpy(uci_lookup_str, WIFI_DISABLED_UCI_PATH);
 		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-				|| (res = uci_delete(ctx, &ptr)) != UCI_OK
-				|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+				|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0
+					&& (res = uci_delete(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK)) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Unable to save wifi autostart to UCI.\"]}");
@@ -151,8 +152,9 @@ void post_wifi(yajl_val top)
 			}
 			strcpy(uci_lookup_str, DUAL_WIFI_DISABLED_UCI_PATH);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| (res = uci_delete(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
+					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0
+						&& (res = uci_delete(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK)) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save wifi autostart of second wifi radio to UCI.\"]}");
