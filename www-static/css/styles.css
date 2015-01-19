@@ -1,4 +1,4 @@
-@import url(normalize.css);
+@import url(standardize.css);
 @import url(skeleton.css);
 /*  Background Color and Gradient*/
 html {
@@ -78,7 +78,7 @@ button.button-primary {
   border: none; }
   button.button-primary:hover, button.button-primary:active {
     background: #244dc6;
-    border: none; }
+    border: none; }   
 
 /*  A Cleaner Underline
   -- based on  http://www.acusti.ca/blog/2014/11/28/towards-a-more-perfect-link-underline
