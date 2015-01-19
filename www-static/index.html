@@ -16,53 +16,43 @@
   var psalt = "";
   var phash = "";
   
-  function show_psk_page()
+  //other multi-page variables
+  var network_ssid = "";
+  
+  
+  //The code here can get a little ugly.
+  //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
+  //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
+   
+
+  function login_gui()
   {
   
-  
-  }
-  
-  function show_ssid_page()
-  {
-      "Now, you will give your WiFi Network a <em class=\"clean-underline\">Name</em>: ";  
-  }
-  
-  function set_network_settings()
-  {
-  
-  
-  
-  }
-  
-  function show_login_page()
-  {
-  
-    $("#input_top_message").html(' \
-      <div class="twelve columns"> \
-	<legend> \
-	  Please enter your Who\'s On My WiFi™ <em class="clean-underline">Product Key</em> To Continue: \
-	</legend> \
+    $("#form_main").html(' \
+      <div class="row"> \
+	<div class="twelve columns"> \
+	  <legend> \
+	    Please enter your Who\'s On My WiFi™ <em class="clean-underline">Product Key</em> To Continue: \
+	  </legend> \
+	</div> \
       </div> \
-    ');
-		    
-    $("#input_fields").html(' \
+      <div class="row">	\
 	<div class="one-third column"> \
 	  <input type="text" placeholder="Enter Key Here" name="password" id="password" class="u-full-width"> \
 	</div> \
 	<div class="two-thirds column"> \
-	  <input type="button" class="button button-primary u-float-left" onClick="login();" value="SUBMIT KEY"> \
+	  <input type="button" class="button button-primary u-float-left" onClick="login_action();" value="SUBMIT KEY" /> \
 	</div>    \
-    ');
-    
-    $("#input_notes").html(' \
-      <div class="twelve columns"> \
-	  <span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.</span> \
-      </div>    \
-    ');
-  
+      </div>	\
+	<div class="row"> \
+	  <div class="twelve columns"> \
+	    <span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.</span> \
+	</div> \
+      </div> \
+      ');
   }
   
-  function login()
+  function login_action()
   {
     var statusmsg = "Logging In...";
     $("#statusText").html(statusmsg);
@@ -74,7 +64,8 @@
 		
 		psalt = json_response.psalt;
 		phash = json_response.phash;		
-		$("#statusText").html("Login Successful");    	
+		$("#statusText").html("Login Successful");   
+		ssid_gui();//go to the ssid page
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Login Error");    
@@ -84,10 +75,57 @@
 		default: alert(xhr.status); break;
 	      }
 	});                 
+  }  
+  
+  
+  function ssid_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Product Key Accepted!</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, you will give your WiFi Network a <em class="clean-underline">Name</em>:	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input placeholder="Enter WiFi Name Here" name="ssid" id="ssid" type="text" class="u-full-width">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="ssid_action();" value="SUBMIT NAME" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  A WiFi name is also known as an SSID.  It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password, which we will enter next.</span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");    
+      
+  }
+  
+  function ssid_action()
+  {  
+    var statusmsg = "Validating SSID...";
+    $("#statusText").html(statusmsg);
+    network_ssid = $("#ssid").val();
+    alert("Setting SSID to " + network_ssid);    
+    
+  
   }
   
   $(document).ready(function() {
-    show_login_page();
+    login_gui();
+    //ssid_gui();
     
   });
   
@@ -99,22 +137,13 @@
         <h1>Welcome To  <em class="clean-underline">Your</em> WiFi </h1>
       </div>
     </div>
+      <div class="flash-row" id="form_usermsg">
+
+      </div>    
     <div class="container">
         
-	  <form action="#" id="single_form">
-
-	      <div class="row" id="input_top_message">
-
-	      </div>    
-	  
-	  
-	      <div class="row" id="input_fields">
-
-	      </div>
-
-	      <div class="row" id="input_notes">
-
-	      </div>		  
+	  <form action="#" id="form_main">
+  
             
 	  </form>
 	  
