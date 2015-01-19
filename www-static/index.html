@@ -18,7 +18,7 @@
   
   //other multi-page variables
   var network_ssid = "";
-  
+  var network_psk = "";
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
@@ -118,10 +118,75 @@
     var statusmsg = "Validating SSID...";
     $("#statusText").html(statusmsg);
     network_ssid = $("#ssid").val();
-    alert("Setting SSID to " + network_ssid);    
-    
+    alert("Setting SSID to " + network_ssid);          
+    psk_gui();
+  }
+  
+  function psk_gui()
+  {
+      var usermsg = '<div class="container">';
+      usermsg += '<h2>NAME:  <span class="clean-underline">' + network_ssid + '</span></h2>';
+      usermsg += '</div>';
+      $("#form_usermsg").html(usermsg);
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, you will create a WiFi Network <em class="clean-underline">Password</em>:	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input placeholder="Enter WiFi password Here" type="text" class="u-full-width"  id="psk" name="psk">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="psk_action();" value="Submit Password" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: We have already created a WiFi Password for you, but it is only a suggestion. Feel free to use it or to create your own. It may be from 8 to 63 characters long.  Please write it down in a secure place.</span>	\
+          </div>	\
+        </div>	\
+      ');      
+      
+      $("#statusText").html("SSID Accepted").fadeOut(3000);      
+  
+  
   
   }
+  
+  function psk_action()
+  {
+      network_psk = $("#psk").val();      
+      
+      var network_creds = {
+	      "psalt": psalt,
+	      "phash": phash,
+	      "ssid": network_ssid,
+	      "psk": network_psk
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?wifi", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("Valid Settings Change" + json_response);
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});                   
+      
+  }  
   
   $(document).ready(function() {
     login_gui();
