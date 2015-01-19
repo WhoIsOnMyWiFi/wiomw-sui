@@ -16,6 +16,51 @@
   var psalt = "";
   var phash = "";
   
+  function show_psk_page()
+  {
+  
+  
+  }
+  
+  function show_ssid_page()
+  {
+      "Now, you will give your WiFi Network a <em class=\"clean-underline\">Name</em>: ";  
+  }
+  
+  function set_network_settings()
+  {
+  
+  
+  
+  }
+  
+  function show_login_page()
+  {
+  
+    $("#input_top_message").html(' \
+      <div class="twelve columns"> \
+	<legend> \
+	  Please enter your Who\'s On My WiFi™ <em class="clean-underline">Product Key</em> To Continue: \
+	</legend> \
+      </div> \
+    ');
+		    
+    $("#input_fields").html(' \
+	<div class="one-third column"> \
+	  <input type="text" placeholder="Enter Key Here" name="password" id="password" class="u-full-width"> \
+	</div> \
+	<div class="two-thirds column"> \
+	  <input type="button" class="button button-primary u-float-left" onClick="login();" value="SUBMIT KEY"> \
+	</div>    \
+    ');
+    
+    $("#input_notes").html(' \
+      <div class="twelve columns"> \
+	  <span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.</span> \
+      </div>    \
+    ');
+  
+  }
   
   function login()
   {
@@ -38,11 +83,14 @@
 		case 403: alert("Invalid Product Key"); break;
 		default: alert(xhr.status); break;
 	      }
-	});      
-    
-     
-      
+	});                 
   }
+  
+  $(document).ready(function() {
+    show_login_page();
+    
+  });
+  
   </script>
 </head>
 <body>
@@ -56,27 +104,16 @@
 	  <form action="#" id="single_form">
 
 	      <div class="row" id="input_top_message">
-		<div class="twelve columns">
-		  <legend>
-		    Please enter your Who's On My WiFi™ <em class="clean-underline">Product Key</em> To Continue:
-		  </legend>
-		</div>
+
 	      </div>    
 	  
 	  
 	      <div class="row" id="input_fields">
-		  <div class="one-third column">
-		    <input type="text" placeholder="Enter Key Here" name="password" id="password" class="u-full-width">
-		  </div>
-		  <div class="two-thirds column">
-		    <input type="button" class="button button-primary u-float-left" onClick="login();" value="SUBMIT KEY">
-		  </div>
+
 	      </div>
 
 	      <div class="row" id="input_notes">
-		<div class="twelve columns">
-		    <span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.</span>
-		</div>
+
 	      </div>		  
             
 	  </form>
