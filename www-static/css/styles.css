@@ -61,7 +61,7 @@ legend {
   letter-spacing: 1px;
   word-spacing: 1px; }
 
-input[type='text'] {
+input {
   color: #353535; }
 
 button,
@@ -78,7 +78,7 @@ button.button-primary {
   border: none; }
   button.button-primary:hover, button.button-primary:active {
     background: #244dc6;
-    border: none; }   
+    border: none; }
 
 /*  A Cleaner Underline
   -- based on  http://www.acusti.ca/blog/2014/11/28/towards-a-more-perfect-link-underline
