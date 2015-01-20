@@ -20,11 +20,18 @@
   var network_ssid = "";
   var network_psk = "";
   
+  var wiomw_username = "";
+  var wiomw_password = "";
+  
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
   //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
-   
+  //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
 
+  //************************************
+  //*Handle Login Page
+  //************************************
+  
   function login_gui()
   {
   
@@ -88,6 +95,11 @@
 	      }
 	});                 
   }  
+  
+
+  //************************************
+  //*Handle Setup Wizard
+  //************************************
   
   
   function setup_ssid_gui()
@@ -187,7 +199,9 @@
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("Valid Settings Change" + json_response);
+	  //alert("Valid Settings Change" + json_response);
+	  //network variables have been set, but needs to be rebooted to set the new values
+	  setup_wiomw_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Network Settings Error");    
@@ -199,6 +213,89 @@
 	});                   
       
   }  
+  
+  function setup_wiomw_gui()
+  {
+  
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, enter your Who\'s On My Wifi Online E-mail address and Password:	\
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+	    <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
+            <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');
+  
+  }
+
+  function setup_wiomw_action()
+  {
+      wiomw_username = $("#wiomw_email").val();      
+      wiomw_password = $("#wiomw_password").val();      
+
+      
+      //Remember, this part is somewhat complicated
+      //You have to call a remote javascript function that checks the server and generates public and private token
+      //Then when you get those values back, you store them on the local router...
+      var remote_creds = {
+	      "username": wiomw_username,
+	      "password": wiomw_password
+      };
+      
+      alert(wiomw_username + ":" + wiomw_password);
+      
+      var json_data = $.toJSON(remote_creds);
+      alert(json_data);
+      
+      
+      var network_creds = {
+	      "psalt": psalt,
+	      "phash": phash,
+	      "ssid": network_ssid,
+	      "psk": network_psk
+      };      
+            
+      
+      /*
+    $.post("cgi-bin/sui.cgi?wifi", json_data)
+	.done(function( json_response ) {		
+		
+	  //alert("Valid Settings Change" + json_response);
+	  //network variables have been set, but needs to be rebooted to set the new values
+	  setup_wiomw_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});                   
+      */
+  }    
+  
+  //************************************
+  //*Handle Main Menu
+  //************************************
+  
+  
+  
   
   $(document).ready(function() {
     login_gui();
@@ -217,9 +314,8 @@
       </div>    
     <div class="container">
         
-	  <form action="#" id="form_main">
-  
-            
+	  <form action="#" id="form_main">  
+                             
 	  </form>
 	  
 	  <div class="row" id="form_status">
