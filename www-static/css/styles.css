@@ -73,12 +73,22 @@ input[type="button"] {
   height: 36px;
   line-height: 36px; }
 
-button.button-primary {
+button.button-primary,
+input[type="submit"].button-primary,
+input[type="reset"].button-primary,
+input[type="button"].button-primary
+{
   background: #1C3C9B;
-  border: none; }
-  button.button-primary:hover, button.button-primary:active {
+  border: none; 
+}
+button.button-primary:hover, button.button-primary:active,
+input[type="submit"].button-primary:hover, input[type="submit"].button-primary:active,
+input[type="reset"].button-primary:hover, input[type="reset"].button-primary:active,
+input[type="button"].button-primary:hover, input[type="button"].button-primary:active
+{
     background: #244dc6;
-    border: none; }
+    border: none; 
+}
 
 /*  A Cleaner Underline
   -- based on  http://www.acusti.ca/blog/2014/11/28/towards-a-more-perfect-link-underline
