@@ -62,10 +62,22 @@
     $.post("cgi-bin/sui.cgi?password", json_data)
 	.done(function( json_response ) {		
 		
-		psalt = json_response.psalt;
-		phash = json_response.phash;		
 		$("#statusText").html("Login Successful");   
-		ssid_gui();//go to the ssid page
+		psalt = json_response.psalt;
+		phash = json_response.phash;	
+		//if(json_response.setup_required)
+		//{
+		  alert("This router needs to be setup");
+		  setup_ssid_gui();//go to the setup wizard ssid page
+		//}
+		/*
+		else
+		{
+		  alert("This router needs to be managed");
+		  mainmenu_gui();//go to the main menu
+		}
+		*/
+		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Login Error");    
@@ -78,7 +90,7 @@
   }  
   
   
-  function ssid_gui()
+  function setup_ssid_gui()
   {
       $("#form_usermsg").html(' \
       	<div class="container"> \
@@ -99,7 +111,7 @@
             <input placeholder="Enter WiFi Name Here" name="ssid" id="ssid" type="text" class="u-full-width">	\
           </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left"  onClick="ssid_action();" value="SUBMIT NAME" />	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_ssid_action();" value="SUBMIT NAME" />	\
           </div>	\
         </div>	\
         <div class="row">	\
@@ -113,16 +125,16 @@
       
   }
   
-  function ssid_action()
+  function setup_ssid_action()
   {  
     var statusmsg = "Validating SSID...";
     $("#statusText").html(statusmsg);
     network_ssid = $("#ssid").val();
     alert("Setting SSID to " + network_ssid);          
-    psk_gui();
+    setup_psk_gui();
   }
   
-  function psk_gui()
+  function setup_psk_gui()
   {
       var usermsg = '<div class="container">';
       usermsg += '<h2>NAME:  <span class="clean-underline">' + network_ssid + '</span></h2>';
@@ -142,7 +154,7 @@
             <input placeholder="Enter WiFi password Here" type="text" class="u-full-width"  id="psk" name="psk">	\
           </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="psk_action();" value="Submit Password" />	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_psk_action();" value="Submit Password" />	\
           </div>	\
         </div>	\
         <div class="row">	\
@@ -158,7 +170,7 @@
   
   }
   
-  function psk_action()
+  function setup_psk_action()
   {
       network_psk = $("#psk").val();      
       
@@ -190,8 +202,6 @@
   
   $(document).ready(function() {
     login_gui();
-    //ssid_gui();
-    
   });
   
   </script>
