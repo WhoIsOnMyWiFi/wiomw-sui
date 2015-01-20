@@ -1,0 +1,209 @@
+Okay, so I forgot something earlier.... you don't send me the router code every time, you me send me back the two credentials I give you when you first send me the router code.
+
+Here is an example:
+
+You post the following to "sui.cgi?password":
+{
+   "password" : "blah_blah_replace_with_router_code"
+}
+
+If the password was wrong, you will get back a status 403 Forbidden and the following:
+{
+   "errors" : [
+      "Invalid password."
+   ]
+}
+
+If the password was correct, you will get back a status 200 OK and the following:
+{
+   "psalt" : "blah_blah_random_salt",
+   "phash" : "blah_blah_crypto_hash"
+}
+
+And then, for example, when you're ready to change the wifi creds, you post the following to "sui.cgi?wifi":
+{
+   "psalt" : "blah_blah_psalt_you_received",
+   "phash" : "blah_blah_phash_you_received",
+   "ssid" : "wifi_network_name",
+   "psk" : "wifi_network_password"
+}
+
+And you would get back either a 500 Internal Server Error and the following:
+{
+   "errors" : [
+      "Error that is probably serious and should not be ignored."
+      "Unable to retrieve psk from UCI.",
+      "Your character in Oregon Trail has dysentery.",
+      "LP0 is on fire."
+   ]
+}
+
+Or, assuming you sent something legit, you would get a 200 OK and the following:
+{
+   "ssid" : "ssid_that_is_currently_saved",
+   "psk" : "psjk_that_is_currently_saved",
+   "errors" : [
+      "Error that might be helpful for debugging but can probably be ignored.",
+      "The psk has not yet been set in UCI."
+      "The number of days since groundhog day is divisible by 17."
+      "The sun is going to explode in a few billion years."
+   ]
+}
+
+Unfortunately, the psalt and phash thing isn't as secure as it might seem since it is vulnerable to replay attacks, but at least a replay alone wouldn't give them the router code.
+
+I've tried to indicate whether or not something was a success based on HTTP status code. Most of the calls have some edge cases where they could return a 500 Internal Server Error with meaningful error messages, a few error messages in the 400s if the data received was invalid (probably not something you'll deal with except for 403 Forbidden messages if a bad password or a bad psalt/phash combo is sent). However, if the status is 200 OK then it should be fine to ignore any error message. For most of the API calls, I will send the current values of variables (after any changes have been attempted) as long as the psalt/phash combo is legitimate, even if some other error has occurred (unless the error is very serious or prevented me from doing so). For example, while you will set the ssid and psk if you post an ssid, psk, psalt, and phash to the wifi URL, you will simply get the ssid and psk if you only post the psalt and phash to the wifi URL.
+
+
+
+Most of the API calls are POST-based. Here is a rough outline of all the calls
+
+
+Password API call
+URL: sui.cgi?password
+Send:
+{
+   "password" : "blah_blah_blah"
+}
+Receive:
+{
+   "psalt" : "blah_blah_blah",
+   "phash" : "blah_blah_blah",
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+WiFi API call
+URL: sui.cgi?wifi
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call",
+   "ssid" : "network_name",               /* optional */
+   "psk" : "network_password"           /* optional */
+}
+Receive:
+{
+   "ssid" : "network_name",
+   "psk" : "network_password",
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+
+
+Who Is On My WiFi Login API call
+URL: sui.cgi?wiomw
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call",
+   "agentkey" : "agentkey_from_online",  /* optional */
+   "pubtoken" : "pubtoken_from_online",  /* optional */
+   "privtoken" : "privtoken_from_online"   /* semi-optional (see NOTE) */
+}
+Receive:
+{
+   "agentkey" : "agentkey_from_online",
+   "pubtoken" : "pubtoken_from_online",
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+NOTE: If privtoken is not present but agentkey or pubtoken are present,
+then this device will be disassociated with the user's account.
+
+
+
+Reboot API call
+URL: sui.cgi?reboot
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call"
+}
+Receive:
+{
+   "rebooting" : true
+}
+
+
+
+WAN IP address API call
+URL: sui.cgi?wan_ip
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call",
+   "dhcp" : (true or false),                 /* optional, see NOTE */
+   "ip" : "234.56.78.90",                    /* optional */
+   "netmask" : "255.255.255.252",     /* optional */
+   "gateway" : "234.56.78.89",           /* optional */
+   "dns" : [ "8.8.8.8", "8.8.4.4" ],        /* optional */
+}
+Receive:
+{
+   "dhcp" : (true or false),
+   "ip" : "234.56.78.90",                    /* optional */
+   "netmask" : "255.255.255.252",     /* optional */
+   "gateway" : "234.56.78.89",           /* optional */
+   "dns" : [ "8.8.8.8", "8.8.4.4" ],        /* optional */
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+NOTE: If dhcp is not present but any of ip, netmask, gateway, or dns are present,
+dhcp is assumed to be false.
+
+
+
+LAN IP address API call
+URL: sui.cgi?lan_ip
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call",
+   "ip" : "192.168.0.1",                      /* optional */
+   "netmask" : "255.255.255.0"         /* optional */
+}
+Receive:
+{
+   "ip" : "192.168.0.1",
+   "netmask" : "255.255.255.0",
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+
+
+Update API call
+URL: sui.cgi?update
+Send:
+{
+   "psalt" : "psalt_from_password_call",
+   "phash" : "phash_from_password_call",
+   "md5" : "blah_blah_blah"               /* if and only if update should continue */
+}
+Receive:
+{
+   "available" : (true or false),
+   "current_version" : "1.0.0",
+   "new_version" : "1.0.1",                /* if update is available */
+   "md5" : "blah_blah_blah",              /* if update is available */
+   "errors" : [ "Blah blah blah."]          /* optional */
+}
+
+
+
+In addition to the POST-based calls, there is one GET-based call:
+
+URL: sui.cgi?mac
+Receive:
+{
+   "mac" : "01:23:45:67:89:AB"
+}
+
+Since the MAC address is not sensitive information for someone with access to the router, we just use a GET call (without a psalt/phash combo) to get this piece of information. In fact, this might be a piece of information that the ISP would need if your WAN connection is down (some ISPs, including Cox and Comcast, MAC-lock their WAN networks).
+
+
+If you need any questions or need any more info from me, just let me know.
+
+
+Thanks again for your help!
+
+--Charlie
