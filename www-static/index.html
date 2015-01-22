@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
-  <script type="text/javascript" src="https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js">;</script>		
+  <!--<script type="text/javascript" src="https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js">;</script>-->
   <script type="text/javascript">
   
   //handle global login variables
@@ -28,6 +28,23 @@
   //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
   //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
 
+  //************************************
+  //Detect if the internet is connected
+  //************************************
+  function detect_internet_connection()
+  {
+    alert("Begin Internt Detection");
+    //still working on this, for now lets just respond with true or false
+    var internet_is_connected = false;
+    
+    if(navigator.onLine)
+    {
+      internet_is_connected = true;
+    }
+    
+    return internet_is_connected;
+  }
+  
   //************************************
   //*Handle Login Page
   //************************************
@@ -75,7 +92,8 @@
 		//if(json_response.setup_required)
 		//{
 		  alert("This router needs to be setup");
-		  setup_ssid_gui();//go to the setup wizard ssid page
+		  //setup_ssid_gui();//go to the setup wizard ssid page
+		  setup_detect_internet_gui();
 		//}
 		/*
 		else
@@ -101,12 +119,96 @@
   //*Handle Setup Wizard
   //************************************
   
+  function setup_detect_internet_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Product Key Accepted!</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Lets now check if your router is connected to the internet \
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_detect_internet_action();" value="Check Internet Connection" />	\
+          </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  Your Wireless Router needs a cable connected from the WAN port to either a cable modem, ADSL modem port, or other router to ensure internet connectivity.</span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");      
+    
+  }
+  
+  function setup_detect_internet_action()
+  {
+    var internet_is_connected = detect_internet_connection();
+    if(internet_is_connected)
+    {
+      setup_ssid_gui();
+    }
+    else
+    {
+      setup_internet_error_gui();
+    }  
+  }
+  
+  function setup_internet_error_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Internet Not Connected!</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              We have determined that you are not connected to the internet	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input placeholder="Enter WiFi Name Here" name="ssid" id="ssid" type="text" class="u-full-width">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_ssid_action();" value="SUBMIT NAME" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  A WiFi name is also known as an SSID.  It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password, which we will enter next.</span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");      
+    
+  }  
+  
+  
+  
   
   function setup_ssid_gui()
   {
       $("#form_usermsg").html(' \
       	<div class="container"> \
-	  <h2>Product Key Accepted!</h2> \
+	  <h2>Internet Access Detected!</h2> \
 	</div>  \
       ');
       
@@ -299,6 +401,9 @@
   
   $(document).ready(function() {
     login_gui();
+    //detect_internet_connection();
+
+    
   });
   
   </script>
