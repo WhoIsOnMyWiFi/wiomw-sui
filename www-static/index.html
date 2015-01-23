@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
-  <!--<script type="text/javascript" src="https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js">;</script>-->
   <script type="text/javascript">
   
   //handle global login variables
@@ -22,6 +21,7 @@
   
   var wiomw_username = "";
   var wiomw_password = "";
+  var wiomw_agentkey = "";
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
@@ -33,13 +33,17 @@
   //************************************
   function detect_internet_connection()
   {
-    alert("Begin Internt Detection");
+    alert("Begin Internet Detection");
     //still working on this, for now lets just respond with true or false
     var internet_is_connected = false;
     
     if(navigator.onLine)
     {
       internet_is_connected = true;
+      //add the whoisonmywifi.net server side javascript
+      $('<script>').attr({
+	  src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	  type: 'text/javascript'}).appendTo('body');
     }
     
     return internet_is_connected;
@@ -349,37 +353,45 @@
   {
       wiomw_username = $("#wiomw_email").val();      
       wiomw_password = $("#wiomw_password").val();      
-
+      wiomw_agentkey = "";
       
       //Remember, this part is somewhat complicated
       //You have to call a remote javascript function that checks the server and generates public and private token
-      //Then when you get those values back, you store them on the local router...
-      var remote_creds = {
-	      "username": wiomw_username,
-	      "password": wiomw_password
-      };
-      
-      alert(wiomw_username + ":" + wiomw_password);
-      
-      var json_data = $.toJSON(remote_creds);
-      alert(json_data);
-      
-      
-      var network_creds = {
+      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      jsc_token_setup_wiomw_agent(
+	  wiomw_username,
+	  wiomw_password,
+	  wiomw_agentkey,
+	  "1",
+	  save_and_apply_credentials,
+	  bad_wiomw_creds);
+  }    
+  
+  function bad_wiomw_creds(errorString)
+  {
+    alert("Invalid Login" + errorString);
+  }
+  
+  function save_and_apply_credentials(publictoken, privatetoken, agentkey)
+  {
+      alert("Valid password");
+      alert(publictoken + ":" + privatetoken + ":" + agentkey);
+      /*
+      var wiomw_creds = {
 	      "psalt": psalt,
 	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
-      };      
-            
+	      "agentkey": agentkey,
+	      "pubtoken": publictoken,
+	      "privtoken": privatetoken
+      };                  
       
-      /*
-    $.post("cgi-bin/sui.cgi?wifi", json_data)
+     
+    $.post("cgi-bin/sui.cgi?wiomw", json_data)
 	.done(function( json_response ) {		
 		
-	  //alert("Valid Settings Change" + json_response);
+	  alert("Saved the WIOMW values" + json_response);
 	  //network variables have been set, but needs to be rebooted to set the new values
-	  setup_wiomw_gui();
+	  //setup_wiomw_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Network Settings Error");    
@@ -390,7 +402,7 @@
 	      }
 	});                   
       */
-  }    
+  }
   
   //************************************
   //*Handle Main Menu
