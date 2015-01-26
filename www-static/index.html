@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Who's On My WiFi™</title>
+  <title>Who's On My WiFi ®</title>
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
@@ -60,7 +60,7 @@
       <div class="row"> \
 	<div class="twelve columns"> \
 	  <legend> \
-	    Please enter your Who\'s On My WiFi™ <em class="clean-underline">Product Key</em> To Continue: \
+	    Please enter your Who\'s On My WiFi ® <em class="clean-underline">Product Key</em> To Continue: \
 	  </legend> \
 	</div> \
       </div> \
@@ -105,7 +105,9 @@
 		  mainmenu_gui();//go to the main menu
 		}
 		*/
-		mainmenu_gui();//go to the main menu		
+		history.pushState(null, null, "detect");
+		setup_detect_internet_gui();
+		//mainmenu_gui();//go to the main menu
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -610,9 +612,11 @@
   
   
   $(document).ready(function() {
-    login_gui();
-    //detect_internet_connection();
-
+    login_gui();    
+    
+    window.addEventListener("popstate", function(e) {
+	location.href='index.html';
+    });
     
   });
   
@@ -629,9 +633,9 @@
       </div>    
     <div class="container">
         
-	  <form action="#" id="form_main">  
+	  <div id="form_main">  
                              
-	  </form>
+	  </div>
 	  
 	  <div class="row" id="form_status">
 	    <div class="twelve columns">
