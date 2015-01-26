@@ -93,19 +93,19 @@
 		$("#statusText").html("Login Successful");   
 		psalt = json_response.psalt;
 		phash = json_response.phash;	
-		//if(json_response.setup_required)
-		//{
-		  alert("This router needs to be setup");
-		  //setup_ssid_gui();//go to the setup wizard ssid page
-		  setup_detect_internet_gui();
-		//}
 		/*
+		if(json_response.setup_required)
+		{
+		  alert("This router needs to be setup");
+		  setup_detect_internet_gui();
+		}		
 		else
 		{
 		  alert("This router needs to be managed");
 		  mainmenu_gui();//go to the main menu
 		}
 		*/
+		mainmenu_gui();//go to the main menu		
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -469,6 +469,142 @@
   //************************************
   //*Handle Main Menu
   //************************************
+  
+  function mainmenu_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Main Menu \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="twelve columns">	\
+	    <ul>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_psk_gui();" value="Change Password (PSK)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
+	      </ul>	\
+	  </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');    
+  }
+  
+  function mm_psk_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Shared Password \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <span>Current Shared Password: </span>	\
+	    <input placeholder="Enter New Password Here" type="text" class="u-full-width"  id="psk" name="psk">          \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }
+
+  function mm_ssid_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Network Name \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <span>Current Shared Password: </span>	\
+	    <input placeholder="Enter New Password Here" type="text" class="u-full-width"  id="psk" name="psk">          \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }  
+  
+  function mm_wiomw_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Manage Who\'s On My Wifi Online Login \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
+            <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }
+
+  function mm_advancedmenu_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Shared Password \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <span>Current Shared Password: </span>	\
+	    <input placeholder="Enter New Password Here" type="text" class="u-full-width"  id="psk" name="psk">          \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }  
   
   
   
