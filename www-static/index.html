@@ -374,9 +374,9 @@
   
   function save_and_apply_credentials(publictoken, privatetoken, agentkey)
   {
-      alert("Valid password");
-      alert(publictoken + ":" + privatetoken + ":" + agentkey);
-      /*
+      //alert("Valid password");
+      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
+      
       var wiomw_creds = {
 	      "psalt": psalt,
 	      "phash": phash,
@@ -385,13 +385,74 @@
 	      "privtoken": privatetoken
       };                  
       
+      var json_data = $.toJSON(wiomw_creds);
+      alert(json_data);  
+      alert("Saving Data to router");
+      //$("#statusText").html(json_data);
      
     $.post("cgi-bin/sui.cgi?wiomw", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("Saved the WIOMW values" + json_response);
-	  //network variables have been set, but needs to be rebooted to set the new values
-	  //setup_wiomw_gui();
+	  alert("WIOMW values saved" + json_response);
+	  setup_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); setup_reboot_gui(); break;
+	      }
+	});   
+  }
+  
+  function setup_reboot_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Who\'s On My Wifi Online Connected!</h2> \
+	</div>  \
+      ');  
+  
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, lets reboot your Router and You\'re done.	\
+              Remember to connect your new Wireless Network ( network_ssid ) \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_reboot_action();" value="Restart Router" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: This setup wizard is now complete.  It may take your wireless router 30 seconds to restart</span>	\
+          </div>	\
+        </div>	  \
+	');
+  
+  }  
+  
+  function setup_reboot_action()
+  {      
+      var reboot_creds = {
+	      "psalt": psalt,
+	      "phash": phash
+      };      
+      
+      var json_data = $.toJSON(reboot_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?reboot", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("Router Restarting" + json_response);
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Network Settings Error");    
@@ -400,9 +461,10 @@
 		case 403: alert("Invalid Product Key"); break;
 		default: alert(xhr.status); break;
 	      }
-	});                   
-      */
+	});               
   }
+  
+  
   
   //************************************
   //*Handle Main Menu
