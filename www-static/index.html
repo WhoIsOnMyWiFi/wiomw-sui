@@ -93,7 +93,7 @@
 		$("#statusText").html("Login Successful");   
 		psalt = json_response.psalt;
 		phash = json_response.phash;	
-		/*
+		
 		if(json_response.setup_required)
 		{
 		  alert("This router needs to be setup");
@@ -104,9 +104,9 @@
 		  alert("This router needs to be managed");
 		  mainmenu_gui();//go to the main menu
 		}
-		*/
+		
 		//setup_detect_internet_gui();
-		mainmenu_gui();//go to the main menu
+		//mainmenu_gui();//go to the main menu
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
