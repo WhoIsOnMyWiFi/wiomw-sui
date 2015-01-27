@@ -491,6 +491,7 @@
 	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
 	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
 	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_logout();" value="Logout" /></li>	\
 	      </ul>	\
 	  </div>	\
         </div>	\
@@ -654,6 +655,11 @@
 		default: alert(xhr.status); break;
 	      }
 	});               
+  }
+  
+  function mm_logout()
+  {
+      location.href='';
   }
   
   
