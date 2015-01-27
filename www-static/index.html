@@ -668,30 +668,64 @@
 
   function mm_ssid_gui()
   {
-      $("#form_main").html(' \
+      var form_main_html = '\
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Change Network Name \
+              Change Network Name (SSID) \
             </legend>	\
           </div>	\
         </div>	 \
         <div class="row">	        \
           <div class="one-third column">	\
-	    <span>Current Shared Password: </span>	\
-	    <input placeholder="Enter New Password Here" type="text" class="u-full-width"  id="psk" name="psk">          \
-          </div>	\
+        ';        
+      form_main_html = form_main_html + '<input placeholder="' + network_ssid + '" type="text" class="u-full-width"  id="ssid" name="ssid">';	    
+      form_main_html = form_main_html + ' \
+	</div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_ssid_action();" value="Change Network Name" />	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
+            <input type="button" class="button-secondary u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
             <span class="instructionText"></span>	\
           </div>	\
-        </div>	  \
-	');        
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
   }  
+  
+  function mm_ssid_action()
+  {
+      network_ssid = $("#ssid").val();
+      
+      var network_creds = {
+	      "psalt": psalt,
+	      "phash": phash,
+	      "ssid": network_ssid,
+	      "psk": network_psk
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?wifi", json_data)
+	.done(function( json_response ) {		
+		
+	  mm_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});                   
+  }  
+  
+  
   
   function mm_wiomw_gui()
   {
@@ -699,7 +733,7 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Manage Who\'s On My Wifi Online Login \
+              Change Who\'s On My Wifi Online Login \
             </legend>	\
           </div>	\
         </div>	 \
@@ -714,7 +748,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText"></span>	\
+            <span class="instructionText">Please Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
           </div>	\
         </div>	  \
 	');        
