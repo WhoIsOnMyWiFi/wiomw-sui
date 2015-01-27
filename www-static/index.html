@@ -12,16 +12,18 @@
   
   //handle global login variables
   //these variables are passed with every json call
-  var psalt = "";
-  var phash = "";
+  var g_psalt = "";
+  var g_phash = "";
   
-  //other multi-page variables
-  var network_ssid = "";
-  var network_psk = "";
+  //other global multi-page variables
+  var g_network_ssid = "";
+  var g_network_psk = "";
   
-  var wiomw_username = "";
-  var wiomw_password = "";
-  var wiomw_agentkey = "";
+  var g_wiomw_username = "";
+  var g_wiomw_password = "";
+  var g_wiomw_agentkey = "";
+  var g_wiomw_pubtoken = "";
+  var g_wiomw_privtoken = "";
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
@@ -91,8 +93,8 @@
 	.done(function( json_response ) {		
 		
 		$("#statusText").html("Login Successful");   
-		psalt = json_response.psalt;
-		phash = json_response.phash;	
+		g_psalt = json_response.psalt;
+		g_phash = json_response.phash;	
 		
 		if(json_response.setup_required)
 		{
@@ -248,15 +250,15 @@
   {  
     var statusmsg = "Validating SSID...";
     $("#statusText").html(statusmsg);
-    network_ssid = $("#ssid").val();
-    alert("Setting SSID to " + network_ssid);          
+    g_network_ssid = $("#ssid").val();
+    alert("Setting SSID to " + g_network_ssid);          
     setup_psk_gui();
   }
   
   function setup_psk_gui()
   {
       var usermsg = '<div class="container">';
-      usermsg += '<h2>NAME:  <span class="clean-underline">' + network_ssid + '</span></h2>';
+      usermsg += '<h2>NAME:  <span class="clean-underline">' + g_network_ssid + '</span></h2>';
       usermsg += '</div>';
       $("#form_usermsg").html(usermsg);
       
@@ -291,13 +293,13 @@
   
   function setup_psk_action()
   {
-      network_psk = $("#psk").val();      
+      g_network_psk = $("#psk").val();      
       
       var network_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
       };      
       
       var json_data = $.toJSON(network_creds);
@@ -352,17 +354,17 @@
 
   function setup_wiomw_action()
   {
-      wiomw_username = $("#wiomw_email").val();      
-      wiomw_password = $("#wiomw_password").val();      
-      wiomw_agentkey = "";
+      g_wiomw_username = $("#wiomw_email").val();      
+      g_wiomw_password = $("#wiomw_password").val();      
+      g_wiomw_agentkey = "";
       
       //Remember, this part is somewhat complicated
       //You have to call a remote javascript function that checks the server and generates public and private token
       //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
       jsc_token_setup_wiomw_agent(
-	  wiomw_username,
-	  wiomw_password,
-	  wiomw_agentkey,
+	  g_wiomw_username,
+	  g_wiomw_password,
+	  g_wiomw_agentkey,
 	  "1",
 	  save_and_apply_credentials,
 	  bad_wiomw_creds);
@@ -379,8 +381,8 @@
       //alert(publictoken + ":" + privatetoken + ":" + agentkey);
       
       var wiomw_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
+	      "psalt": g_psalt,
+	      "phash": g_phash,
 	      "agentkey": agentkey,
 	      "pubtoken": publictoken,
 	      "privtoken": privatetoken
@@ -420,7 +422,7 @@
           <div class="twelve columns">	\
             <legend>	\
               Now, lets reboot your Router and You\'re done.	\
-              Remember to connect your new Wireless Network ( network_ssid ) \
+              Remember to connect your new Wireless Network ( g_network_ssid ) \
             </legend>	\
           </div>	\
         </div>	 \
@@ -443,8 +445,8 @@
   function setup_reboot_action()
   {      
       var reboot_creds = {
-	      "psalt": psalt,
-	      "phash": phash
+	      "psalt": g_psalt,
+	      "phash": g_phash
       };      
       
       var json_data = $.toJSON(reboot_creds);
@@ -481,6 +483,7 @@
             <legend>	\
               SSID: <span id="label_ssid">...</span><br/>	\
               PSK: <span id="label_psk">...</span>	\
+              AgentKey: <span id="label_agentkey">...</span>	\
             </legend>	\
           </div>	\
         </div>	 \
@@ -503,12 +506,12 @@
 	');    
 	
 
-	if( (network_ssid == "") || (network_psk == "") )
+	if( (g_network_ssid == "") || (g_network_psk == "") )
 	{
 	
 	  var ssid_creds = {
-		  "psalt": psalt,
-		  "phash": phash
+		  "psalt": g_psalt,
+		  "phash": g_phash
 	  };      
 	  	 	  
 	  var json_data = $.toJSON(ssid_creds);
@@ -516,11 +519,11 @@
 	  $.post("cgi-bin/sui.cgi?wifi", json_data)
 	      .done(function( json_response ) {
 		
-		network_ssid = json_response.ssid;
-		network_psk = json_response.psk;
+		g_network_ssid = json_response.ssid;
+		g_network_psk = json_response.psk;
 		
-		$("#label_ssid").html(network_ssid);
-		$("#label_psk").html(network_psk);
+		$("#label_ssid").html(g_network_ssid);
+		$("#label_psk").html(g_network_psk);
 		
 	      })
 	      .error(function (xhr, ajaxOptions, thrownError) {
@@ -534,9 +537,44 @@
 	}
 	else
 	{
-	  $("#label_ssid").html(network_ssid);
-	  $("#label_psk").html(network_psk);	
+	  $("#label_ssid").html(g_network_ssid);
+	  $("#label_psk").html(g_network_psk);	
 	}
+	
+	if(g_wiomw_agentkey == "") 
+	{
+	
+	  var ssid_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash
+	  };      
+	  	 	  
+	  var json_data = $.toJSON(ssid_creds);
+
+	  $.post("cgi-bin/sui.cgi?wiomw", json_data)
+	      .done(function( json_response ) {
+		
+		g_wiomw_agentkey = json_response.agentkey;
+		g_wiomw_pubtoken = json_response.pubtoken;
+		g_wiomw_privtoken = json_response.privtoken;
+		
+		$("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
+		
+	      })
+	      .error(function (xhr, ajaxOptions, thrownError) {
+		    $("#statusText").html("Network Settings Error");    
+		    switch(xhr.status)
+		    {
+		      case 403: alert("Invalid Product Key"); break;
+		      default: alert(xhr.status); break;
+		    }
+	      });          	
+	}
+	else
+	{
+	  $("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
+	}	
+	
 	
   }
   
@@ -553,7 +591,7 @@
         <div class="row">	        \
           <div class="one-third column">	\
         ';        
-      form_main_html = form_main_html + '<input placeholder="' + network_psk + '" type="text" class="u-full-width"  id="psk" name="psk">';	    
+      form_main_html = form_main_html + '<input placeholder="' + g_network_psk + '" type="text" class="u-full-width"  id="psk" name="psk">';	    
       form_main_html = form_main_html + ' \
 	</div>	\
           <div class="two-thirds column">	\
@@ -572,13 +610,13 @@
   
   function mm_psk_action()
   {
-      network_psk = $("#psk").val();      
+      g_network_psk = $("#psk").val();      
       
       var network_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
       };      
       
       var json_data = $.toJSON(network_creds);
@@ -635,8 +673,8 @@
   function mm_reboot_action()
   {      
       var reboot_creds = {
-	      "psalt": psalt,
-	      "phash": phash
+	      "psalt": g_psalt,
+	      "phash": g_phash
       };      
       
       var json_data = $.toJSON(reboot_creds);
@@ -679,7 +717,7 @@
         <div class="row">	        \
           <div class="one-third column">	\
         ';        
-      form_main_html = form_main_html + '<input placeholder="' + network_ssid + '" type="text" class="u-full-width"  id="ssid" name="ssid">';	    
+      form_main_html = form_main_html + '<input placeholder="' + g_network_ssid + '" type="text" class="u-full-width"  id="ssid" name="ssid">';	    
       form_main_html = form_main_html + ' \
 	</div>	\
           <div class="two-thirds column">	\
@@ -698,13 +736,13 @@
   
   function mm_ssid_action()
   {
-      network_ssid = $("#ssid").val();
+      g_network_ssid = $("#ssid").val();
       
       var network_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
       };      
       
       var json_data = $.toJSON(network_creds);
@@ -743,7 +781,7 @@
             <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
           </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Connect to Online" />	\
           </div>	\
         </div>	\
         <div class="row">	\
