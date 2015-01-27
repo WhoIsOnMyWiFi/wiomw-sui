@@ -115,7 +115,7 @@ void post_wiomw(yajl_val top)
 			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");
 			return;
 		}
-		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
+		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH "=1", BUFSIZ);
 		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 				|| (res = uci_set(ctx, &ptr)) != UCI_OK
 				|| (res = uci_save(ctx, ptr.p)) != UCI_OK

@@ -181,10 +181,10 @@ void post_password(yajl_val top)
 	printf("Content-type: application/json\n\n");
 	printf("{\"psalt\":\"%s\",\"phash\":\"%s\"", psalt_and_shash, phash);
 
-	if (setup) {
+	if (!setup) {
 		printf(",\"setup_required\":true}");
 	} else {
-		printf("}");
+		printf(",\"setup_required\":false}");
 	}
 }
 
