@@ -482,8 +482,9 @@
           <div class="twelve columns">	\
             <legend>	\
               SSID: <span id="label_ssid">...</span><br/>	\
-              PSK: <span id="label_psk">...</span>	\
+              PSK: <span id="label_psk">...</span><br/>	\
               AgentKey: <span id="label_agentkey">...</span>	\
+              Internet Connected: <span id="label_internetconnected">...</span>	\
             </legend>	\
           </div>	\
         </div>	 \
@@ -575,7 +576,14 @@
 	  $("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
 	}	
 	
-	
+	if(detect_internet_connection())
+	{
+	  $("#label_internetconnected").html("Connected");
+	}
+	else
+	{
+	  $("#label_internetconnected").html("Disconnected");
+	}
   }
   
   function mm_psk_gui()
@@ -791,6 +799,65 @@
         </div>	  \
 	');        
   }
+  
+  function mm_wiomw_action()
+  {
+      g_wiomw_username = $("#wiomw_email").val();      
+      g_wiomw_password = $("#wiomw_password").val();      
+      
+      //Remember, this part is somewhat complicated
+      //You have to call a remote javascript function that checks the server and generates public and private token
+      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      jsc_token_setup_wiomw_agent(
+	  g_wiomw_username,
+	  g_wiomw_password,
+	  g_wiomw_agentkey,
+	  "1",
+	  mm_save_and_apply_credentials,
+	  mm_bad_wiomw_creds);
+  }    
+  
+  function mm_bad_wiomw_creds(errorString)
+  {
+    alert("Invalid Login" + errorString);
+  }
+  
+  function mm_save_and_apply_credentials(publictoken, privatetoken, agentkey)
+  {
+      //alert("Valid password");
+      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
+      
+      var wiomw_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "agentkey": agentkey,
+	      "pubtoken": publictoken,
+	      "privtoken": privatetoken
+      };                  
+      
+      var json_data = $.toJSON(wiomw_creds);
+      alert(json_data);  
+      alert("Saving Data to router");
+      //$("#statusText").html(json_data);
+     
+    $.post("cgi-bin/sui.cgi?wiomw", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("WIOMW values saved" + json_response);
+	  mm_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); mm_reboot_gui(); break;
+	      }
+	});   
+  }
+  
+  
+  
 
   function mm_advancedmenu_gui()
   {
@@ -798,24 +865,10 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Change Shared Password \
+              Future Advanced Menu \
             </legend>	\
           </div>	\
-        </div>	 \
-        <div class="row">	        \
-          <div class="one-third column">	\
-	    <span>Current Shared Password: </span>	\
-	    <input placeholder="Enter New Password Here" type="text" class="u-full-width"  id="psk" name="psk">          \
-          </div>	\
-          <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
-          </div>	\
         </div>	\
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
-          </div>	\
-        </div>	  \
 	');        
   }  
   
