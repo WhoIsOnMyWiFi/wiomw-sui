@@ -473,14 +473,14 @@
   
   function mainmenu_gui()
   {
-      $("#h1msg").html('Router Configuration');
+      $("#h1msg").html('<button onClick=\"mainmenu_gui();\">Home</button>Router Configuration');
   
       $("#form_main").html(' \
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              <span id="label_ssid"></span><br/>	\
-              <span id="label_psk"></span>	\
+              SSID: <span id="label_ssid">...</span><br/>	\
+              PSK: <span id="label_psk">...</span>	\
             </legend>	\
           </div>	\
         </div>	 \
@@ -496,36 +496,46 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+            <span class="instructionText"></span>	\
           </div>	\
         </div>	  \
 	');    
 	
-	var ssid_creds = {
-		"psalt": psalt,
-		"phash": phash
-	};      
+
+	if( (network_ssid == "") || (network_psk == "") )
+	{
 	
-	var json_data = $.toJSON(ssid_creds);
-	
-      $.post("cgi-bin/sui.cgi?wifi", json_data)
-	  .done(function( json_response ) {
-	    
-	    network_ssid = json_response.ssid;
-	    network_psk = json_response.psk;
-	    
-	    $("#label_ssid").html("Wireless Name: " + network_ssid);
-	    $("#label_psk").html("Wireless Password: " + network_psk);
-	    
-	  })
-	  .error(function (xhr, ajaxOptions, thrownError) {
-		$("#statusText").html("Network Settings Error");    
-		switch(xhr.status)
-		{
-		  case 403: alert("Invalid Product Key"); break;
-		  default: alert(xhr.status); break;
-		}
-	  });          	
+	  var ssid_creds = {
+		  "psalt": psalt,
+		  "phash": phash
+	  };      
+	  	 	  
+	  var json_data = $.toJSON(ssid_creds);
+
+	  $.post("cgi-bin/sui.cgi?wifi", json_data)
+	      .done(function( json_response ) {
+		
+		network_ssid = json_response.ssid;
+		network_psk = json_response.psk;
+		
+		$("#label_ssid").html(network_ssid);
+		$("#label_psk").html(network_psk);
+		
+	      })
+	      .error(function (xhr, ajaxOptions, thrownError) {
+		    $("#statusText").html("Network Settings Error");    
+		    switch(xhr.status)
+		    {
+		      case 403: alert("Invalid Product Key"); break;
+		      default: alert(xhr.status); break;
+		    }
+	      });          	
+	}
+	else
+	{
+	  $("#label_ssid").html(network_ssid);
+	  $("#label_psk").html(network_psk);	
+	}
 	
   }
   
@@ -550,7 +560,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+            <span class="instructionText"></span>	\
           </div>	\
         </div>	  \
 	');        
@@ -577,7 +587,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+            <span class="instructionText"></span>	\
           </div>	\
         </div>	  \
 	');        
@@ -604,7 +614,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
+            <span class="instructionText"></span>	\
           </div>	\
         </div>	  \
 	');        
@@ -640,9 +650,12 @@
   $(document).ready(function() {
     login_gui();    
     
+    
     window.addEventListener("popstate", function(e) {
 	location.href='';
+	//alert("Calling PopState");
     });
+    
     
   });
   
