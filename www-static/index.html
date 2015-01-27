@@ -69,14 +69,14 @@
     {
       g_internet_connected = true;
       result = true;
-      alert("Internet is connected");
+      //alert("Internet is connected");
       $('<script>').attr({
 	  src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
 	  type: 'text/javascript'}).appendTo('body');        
     }
     else
     {
-      alert("Internet is disconnected");
+      //alert("Internet is disconnected");
     }
     return result;
   }
@@ -122,18 +122,18 @@
     $.post("cgi-bin/sui.cgi?password", json_data)
 	.done(function( json_response ) {		
 		
-		$("#statusText").html("Login Successful");   
+		$("#statusText").html("Login Successful").fadeOut(3000);   
 		g_psalt = json_response.psalt;
 		g_phash = json_response.phash;	
 		
 		if(json_response.setup_required)
 		{
-		  alert("This router needs to be setup");
+		  //alert("This router needs to be setup");
 		  setup_detect_internet_gui();
 		}		
 		else
 		{
-		  alert("This router needs to be managed");
+		  //alert("This router needs to be managed");
 		  mainmenu_gui();//go to the main menu
 		}
 		
@@ -220,16 +220,8 @@
           </div>	\
         </div>	\
         <div class="row">	\
-          <div class="one-third column">	\
-            <input placeholder="Enter WiFi Name Here" name="ssid" id="ssid" type="text" class="u-full-width">	\
-          </div>	\
-          <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left"  onClick="setup_ssid_action();" value="SUBMIT NAME" />	\
-          </div>	\
-        </div>	\
-        <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE:  A WiFi name is also known as an SSID.  It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password, which we will enter next.</span>	\
+            <span class="instructionText">NOTE:  The blue cabled labled WAN needs to be connected either to another wireless router, cable modem, or DSL connection </span>	\
           </div>	\
         </div>      \
       ');      
@@ -281,7 +273,7 @@
     var statusmsg = "Validating SSID...";
     $("#statusText").html(statusmsg);
     g_network_ssid = $("#ssid").val();
-    alert("Setting SSID to " + g_network_ssid);          
+    //alert("Setting SSID to " + g_network_ssid);          
     setup_psk_gui();
   }
   
@@ -333,7 +325,7 @@
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
@@ -402,7 +394,7 @@
   
   function bad_wiomw_creds(errorString)
   {
-    alert("Invalid Login" + errorString);
+    alert(errorString);
   }
   
   function save_and_apply_credentials(publictoken, privatetoken, agentkey)
@@ -419,14 +411,14 @@
       };                  
       
       var json_data = $.toJSON(wiomw_creds);
-      alert(json_data);  
-      alert("Saving Data to router");
+      //alert(json_data);  
+      //alert("Saving Data to router");
       //$("#statusText").html(json_data);
      
     $.post("cgi-bin/sui.cgi?wiomw", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("WIOMW values saved" + json_response);
+	  //alert("WIOMW values saved" + json_response);
 	  setup_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -480,7 +472,7 @@
       };      
       
       var json_data = $.toJSON(reboot_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?reboot", json_data)
 	.done(function( json_response ) {		
@@ -505,7 +497,7 @@
   
   function mainmenu_gui()
   {
-      $("#h1msg").html('<button onClick=\"mainmenu_gui();\">Home</button>Router Configuration');
+      $("#h1msg").html('Router Configuration');
   
       $("#form_main").html(' \
         <div class="row">	\
@@ -513,8 +505,6 @@
             <legend>	\
               SSID: <span id="label_ssid">...</span><br/>	\
               PSK: <span id="label_psk">...</span><br/>	\
-              AgentKey: <span id="label_agentkey">...</span>	\
-              Internet Connected: <span id="label_internetconnected">...</span>	\
             </legend>	\
           </div>	\
         </div>	 \
@@ -589,7 +579,7 @@
 		g_wiomw_pubtoken = json_response.pubtoken;
 		g_wiomw_privtoken = json_response.privtoken;
 		
-		$("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
+		//$("#label_agentkey").html(g_wiomw_agentkey);
 		
 	      })
 	      .error(function (xhr, ajaxOptions, thrownError) {
