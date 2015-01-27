@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([openwrt-sui], [0.2.5], [bugs@whoisonmywifi.com])
+AC_INIT([openwrt-sui], [0.2.6], [bugs@whoisonmywifi.com])
 AC_CONFIG_SRCDIR([src/wifi_cgi.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
@@ -55,5 +55,7 @@ AC_CHECK_FUNCS([getspnam stpcpy strdup strerror strnlen strtoul])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-		 www-static/Makefile])
+		 www-static/Makefile
+		 www-static/css/Makefile
+		 www-static/js/Makefile])
 AC_OUTPUT
