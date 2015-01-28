@@ -4,30 +4,83 @@
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Who's On My WiFi™</title>
+  <title>Who's On My WiFi ®</title>
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
-  <script type="text/javascript" src="https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js">;</script>		
   <script type="text/javascript">
   
   //handle global login variables
   //these variables are passed with every json call
-  var psalt = "";
-  var phash = "";
+  var g_psalt = "";
+  var g_phash = "";
   
-  //other multi-page variables
-  var network_ssid = "";
-  var network_psk = "";
+  //other global multi-page variables
+  var g_network_ssid = "";
+  var g_network_psk = "";
   
-  var wiomw_username = "";
-  var wiomw_password = "";
+  var g_internet_connected = false;
+  var g_wiomw_username = "";
+  var g_wiomw_password = "";
+  var g_wiomw_agentkey = "";
+  var g_wiomw_pubtoken = "";
+  var g_wiomw_privtoken = "";
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
   //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
   //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
 
+  //************************************
+  //Detect if the internet is connected
+  //************************************
+  /*
+  function internet_is_connected() {
+  // Grab the GOOGLE CMD
+    g_internet_connected = true;
+    alert("Internet is connected");
+    $('<script>').attr({
+	src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	type: 'text/javascript'}).appendTo('body');    
+  }
+  function internet_is_down() {
+  // Grab the LOCAL JQ
+    alert("Internet Is Not Connected");
+  }
+ 
+  function detect_internet_connection()
+  {
+    alert("Begin Internet Detection");
+    
+    var i = new Image();
+    i.onload = internet_is_connected;
+    i.onerror = internet_is_down;
+    // CHANGE IMAGE URL TO ANY IMAGE YOU KNOW IS LIVE
+    i.src = 'http://www.whoisonmywifi.com.s3.amazonaws.com/internet_traffic.png?d=' + escape(Date());
+    // escape(Date()) is necessary to override possibility of image coming from cache    
+    
+  }  
+  */
+  function detect_internet_connection()
+  {
+    //standard method
+    var result = false;
+    if(navigator.onLine)
+    {
+      g_internet_connected = true;
+      result = true;
+      //alert("Internet is connected");
+      $('<script>').attr({
+	  src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	  type: 'text/javascript'}).appendTo('body');        
+    }
+    else
+    {
+      //alert("Internet is disconnected");
+    }
+    return result;
+  }
+  
   //************************************
   //*Handle Login Page
   //************************************
@@ -39,7 +92,7 @@
       <div class="row"> \
 	<div class="twelve columns"> \
 	  <legend> \
-	    Please enter your Who\'s On My WiFi™ <em class="clean-underline">Product Key</em> To Continue: \
+	    Please enter your Who\'s On My WiFi ® <em class="clean-underline">Product Key</em> To Continue: \
 	  </legend> \
 	</div> \
       </div> \
@@ -69,21 +122,23 @@
     $.post("cgi-bin/sui.cgi?password", json_data)
 	.done(function( json_response ) {		
 		
-		$("#statusText").html("Login Successful");   
-		psalt = json_response.psalt;
-		phash = json_response.phash;	
-		//if(json_response.setup_required)
-		//{
-		  alert("This router needs to be setup");
-		  setup_ssid_gui();//go to the setup wizard ssid page
-		//}
-		/*
+		$("#statusText").html("Login Successful").fadeOut(3000);   
+		g_psalt = json_response.psalt;
+		g_phash = json_response.phash;	
+		
+		if(json_response.setup_required)
+		{
+		  //alert("This router needs to be setup");
+		  setup_detect_internet_gui();
+		}		
 		else
 		{
-		  alert("This router needs to be managed");
+		  //alert("This router needs to be managed");
 		  mainmenu_gui();//go to the main menu
 		}
-		*/
+		
+		//setup_detect_internet_gui();
+		//mainmenu_gui();//go to the main menu
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -101,12 +156,88 @@
   //*Handle Setup Wizard
   //************************************
   
+  function setup_detect_internet_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Product Key Accepted!</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Lets now check if your router is connected to the internet \
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_detect_internet_action();" value="Check Internet Connection" />	\
+          </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  Your Wireless Router needs a cable connected from the WAN port to either a cable modem, ADSL modem port, or other router to ensure internet connectivity.</span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");      
+    
+  }
+  
+  function setup_detect_internet_action()
+  {
+    var internet_is_connected = detect_internet_connection();
+    if(internet_is_connected)
+    {
+      setup_ssid_gui();
+    }
+    else
+    {
+      setup_internet_error_gui();
+    }  
+  }
+  
+  function setup_internet_error_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Internet Not Connected!</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              We have determined that you are not connected to the internet	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  The blue cabled labled WAN needs to be connected either to another wireless router, cable modem, or DSL connection </span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");      
+    
+  }  
+  
+  
+  
   
   function setup_ssid_gui()
   {
       $("#form_usermsg").html(' \
       	<div class="container"> \
-	  <h2>Product Key Accepted!</h2> \
+	  <h2>Internet Access Detected!</h2> \
 	</div>  \
       ');
       
@@ -141,15 +272,15 @@
   {  
     var statusmsg = "Validating SSID...";
     $("#statusText").html(statusmsg);
-    network_ssid = $("#ssid").val();
-    alert("Setting SSID to " + network_ssid);          
+    g_network_ssid = $("#ssid").val();
+    //alert("Setting SSID to " + g_network_ssid);          
     setup_psk_gui();
   }
   
   function setup_psk_gui()
   {
       var usermsg = '<div class="container">';
-      usermsg += '<h2>NAME:  <span class="clean-underline">' + network_ssid + '</span></h2>';
+      usermsg += '<h2>NAME:  <span class="clean-underline">' + g_network_ssid + '</span></h2>';
       usermsg += '</div>';
       $("#form_usermsg").html(usermsg);
       
@@ -184,17 +315,17 @@
   
   function setup_psk_action()
   {
-      network_psk = $("#psk").val();      
+      g_network_psk = $("#psk").val();      
       
       var network_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
@@ -245,39 +376,280 @@
 
   function setup_wiomw_action()
   {
-      wiomw_username = $("#wiomw_email").val();      
-      wiomw_password = $("#wiomw_password").val();      
-
+      g_wiomw_username = $("#wiomw_email").val();      
+      g_wiomw_password = $("#wiomw_password").val();      
+      g_wiomw_agentkey = "";
       
       //Remember, this part is somewhat complicated
       //You have to call a remote javascript function that checks the server and generates public and private token
-      //Then when you get those values back, you store them on the local router...
-      var remote_creds = {
-	      "username": wiomw_username,
-	      "password": wiomw_password
-      };
+      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      jsc_token_setup_wiomw_agent(
+	  g_wiomw_username,
+	  g_wiomw_password,
+	  g_wiomw_agentkey,
+	  "1",
+	  save_and_apply_credentials,
+	  bad_wiomw_creds);
+  }    
+  
+  function bad_wiomw_creds(errorString)
+  {
+    alert(errorString);
+  }
+  
+  function save_and_apply_credentials(publictoken, privatetoken, agentkey)
+  {
+      //alert("Valid password");
+      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
       
-      alert(wiomw_username + ":" + wiomw_password);
+      var wiomw_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "agentkey": agentkey,
+	      "pubtoken": publictoken,
+	      "privtoken": privatetoken
+      };                  
       
-      var json_data = $.toJSON(remote_creds);
-      alert(json_data);
+      var json_data = $.toJSON(wiomw_creds);
+      //alert(json_data);  
+      //alert("Saving Data to router");
+      //$("#statusText").html(json_data);
+     
+    $.post("cgi-bin/sui.cgi?wiomw", json_data)
+	.done(function( json_response ) {		
+		
+	  //alert("WIOMW values saved" + json_response);
+	  setup_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); setup_reboot_gui(); break;
+	      }
+	});   
+  }
+  
+  function setup_reboot_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Who\'s On My Wifi Online Connected!</h2> \
+	</div>  \
+      ');  
+  
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, lets reboot your Router and You\'re done.	\
+              Remember to connect your new Wireless Network ( g_network_ssid ) \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_reboot_action();" value="Restart Router" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: This setup wizard is now complete.  It may take your wireless router 30 seconds to restart</span>	\
+          </div>	\
+        </div>	  \
+	');
+  
+  }  
+  
+  function setup_reboot_action()
+  {      
+      var reboot_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash
+      };      
       
+      var json_data = $.toJSON(reboot_creds);
+      //alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?reboot", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("Router Restarting" + json_response);
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});               
+  }
+  
+  
+  
+  //************************************
+  //*Handle Main Menu
+  //************************************
+  
+  function mainmenu_gui()
+  {
+      $("#h1msg").html('Router Configuration');
+  
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              SSID: <span id="label_ssid">...</span><br/>	\
+              PSK: <span id="label_psk">...</span><br/>	\
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="twelve columns">	\
+	    <ul>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_psk_gui();" value="Change Password (PSK)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_logout();" value="Logout" /></li>	\
+	      </ul>	\
+	  </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText"></span>	\
+          </div>	\
+        </div>	  \
+	');    
+	
+
+	if( (g_network_ssid == "") || (g_network_psk == "") )
+	{
+	
+	  var ssid_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash
+	  };      
+	  	 	  
+	  var json_data = $.toJSON(ssid_creds);
+
+	  $.post("cgi-bin/sui.cgi?wifi", json_data)
+	      .done(function( json_response ) {
+		
+		g_network_ssid = json_response.ssid;
+		g_network_psk = json_response.psk;
+		
+		$("#label_ssid").html(g_network_ssid);
+		$("#label_psk").html(g_network_psk);
+		
+	      })
+	      .error(function (xhr, ajaxOptions, thrownError) {
+		    $("#statusText").html("Network Settings Error");    
+		    switch(xhr.status)
+		    {
+		      case 403: alert("Invalid Product Key"); break;
+		      default: alert(xhr.status); break;
+		    }
+	      });          	
+	}
+	else
+	{
+	  $("#label_ssid").html(g_network_ssid);
+	  $("#label_psk").html(g_network_psk);	
+	}
+	
+	if(g_wiomw_agentkey == "") 
+	{
+	
+	  var ssid_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash
+	  };      
+	  	 	  
+	  var json_data = $.toJSON(ssid_creds);
+
+	  $.post("cgi-bin/sui.cgi?wiomw", json_data)
+	      .done(function( json_response ) {
+		
+		g_wiomw_agentkey = json_response.agentkey;
+		g_wiomw_pubtoken = json_response.pubtoken;
+		g_wiomw_privtoken = json_response.privtoken;
+		
+		//$("#label_agentkey").html(g_wiomw_agentkey);
+		
+	      })
+	      .error(function (xhr, ajaxOptions, thrownError) {
+		    $("#statusText").html("Network Settings Error");    
+		    switch(xhr.status)
+		    {
+		      case 403: alert("Invalid Product Key"); break;
+		      default: alert(xhr.status); break;
+		    }
+	      });          	
+	}
+	else
+	{
+	  $("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
+	}	
+	
+	if(!g_internet_connected)
+	{
+	  detect_internet_connection();
+	}
+  }
+  
+  function mm_psk_gui()
+  {
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Shared Password \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+        ';        
+      form_main_html = form_main_html + '<input placeholder="' + g_network_psk + '" type="text" class="u-full-width"  id="psk" name="psk">';	    
+      form_main_html = form_main_html + ' \
+	</div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_psk_action();" value="Change Password" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-secondary u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <span class="instructionText"></span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+  }
+  
+  function mm_psk_action()
+  {
+      g_network_psk = $("#psk").val();      
       
       var network_creds = {
-	      "psalt": psalt,
-	      "phash": phash,
-	      "ssid": network_ssid,
-	      "psk": network_psk
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
       };      
-            
       
-      /*
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
 		
-	  //alert("Valid Settings Change" + json_response);
-	  //network variables have been set, but needs to be rebooted to set the new values
-	  setup_wiomw_gui();
+	  mm_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Network Settings Error");    
@@ -287,18 +659,245 @@
 		default: alert(xhr.status); break;
 	      }
 	});                   
-      */
+  }
+
+  function mm_reboot_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Reboot Required!</h2> \
+	</div>  \
+      ');  
+  
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              To keep your router changes, please reboot your Router.	\
+              Remember to connect your new Wireless Credentials \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_reboot_action();" value="Restart Router" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText"></span>	\
+          </div>	\
+        </div>	  \
+	');
+  
+  }  
+  
+  function mm_reboot_action()
+  {      
+      var reboot_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash
+      };      
+      
+      var json_data = $.toJSON(reboot_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?reboot", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("Router Restarting" + json_response);
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});               
+  }
+  
+  function mm_logout()
+  {
+      location.href='';
+  }
+  
+  
+  
+  
+
+  function mm_ssid_gui()
+  {
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Network Name (SSID) \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+        ';        
+      form_main_html = form_main_html + '<input placeholder="' + g_network_ssid + '" type="text" class="u-full-width"  id="ssid" name="ssid">';	    
+      form_main_html = form_main_html + ' \
+	</div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_ssid_action();" value="Change Network Name" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-secondary u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <span class="instructionText"></span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+  }  
+  
+  function mm_ssid_action()
+  {
+      g_network_ssid = $("#ssid").val();
+      
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?wifi", json_data)
+	.done(function( json_response ) {		
+		
+	  mm_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});                   
+  }  
+  
+  
+  
+  function mm_wiomw_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Change Who\'s On My Wifi Online Login \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
+            <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Connect to Online" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">Please Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }
+  
+  function mm_wiomw_action()
+  {
+      g_wiomw_username = $("#wiomw_email").val();      
+      g_wiomw_password = $("#wiomw_password").val();      
+      
+      //Remember, this part is somewhat complicated
+      //You have to call a remote javascript function that checks the server and generates public and private token
+      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      jsc_token_setup_wiomw_agent(
+	  g_wiomw_username,
+	  g_wiomw_password,
+	  g_wiomw_agentkey,
+	  "1",
+	  mm_save_and_apply_credentials,
+	  mm_bad_wiomw_creds);
   }    
   
-  //************************************
-  //*Handle Main Menu
-  //************************************
+  function mm_bad_wiomw_creds(errorString)
+  {
+    alert("Invalid Login" + errorString);
+  }
+  
+  function mm_save_and_apply_credentials(publictoken, privatetoken, agentkey)
+  {
+      //alert("Valid password");
+      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
+      
+      var wiomw_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "agentkey": agentkey,
+	      "pubtoken": publictoken,
+	      "privtoken": privatetoken
+      };                  
+      
+      var json_data = $.toJSON(wiomw_creds);
+      alert(json_data);  
+      alert("Saving Data to router");
+      //$("#statusText").html(json_data);
+     
+    $.post("cgi-bin/sui.cgi?wiomw", json_data)
+	.done(function( json_response ) {		
+		
+	  alert("WIOMW values saved" + json_response);
+	  mm_reboot_gui();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); mm_reboot_gui(); break;
+	      }
+	});   
+  }
   
   
   
+
+  function mm_advancedmenu_gui()
+  {
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Future Advanced Menu \
+            </legend>	\
+          </div>	\
+        </div>	\
+	');        
+  }  
   
   $(document).ready(function() {
-    login_gui();
+    login_gui();    
+    
+    
+    window.addEventListener("popstate", function(e) {
+	location.href='';
+	//alert("Calling PopState");
+    });
+    
+    
   });
   
   </script>
@@ -306,7 +905,7 @@
 <body>
    <div class="header-row">
       <div class="container">
-        <h1>Welcome To  <em class="clean-underline">Your</em> WiFi </h1>
+        <h1 id="h1msg">Welcome To  <em class="clean-underline">Your</em> WiFi </h1>
       </div>
     </div>
       <div class="flash-row" id="form_usermsg">
@@ -314,9 +913,9 @@
       </div>    
     <div class="container">
         
-	  <form action="#" id="form_main">  
+	  <div id="form_main">  
                              
-	  </form>
+	  </div>
 	  
 	  <div class="row" id="form_status">
 	    <div class="twelve columns">
