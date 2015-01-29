@@ -13,16 +13,17 @@
 #include <sys/types.h>
 #include <curl/curl.h>
 #include <yajl/yajl_tree.h>
+#include <uci.h>
 #include <polarssl/md5.h>
 
-#define BASE_URL "https://whoisonmywifi.s3.amazonaws.com/path/"
+#define SUI_MODEL_PATH "sui.system.model"
+
+#define BASE_URL "https://www.whoisonmywifi.net/hw/"
 #define LATEST_JSON_URL BASE_URL "latest.json"
 #define CA_FILE "/etc/wiomw/ca.pem"
-#define UPGRADE_FILE "/tmp/upgrade.bin"
+#define UPGRADE_FILE "/tmp/sysupgrade.bin"
 #define REBOOT_DELAY "15"
 #define JSON_ERROR_BUFFER_LEN 1024
-/* TODO */
-#define JSON_DEVICE_NAME "foo"
 #define MINIMUM_EXTRA_MEMORY 524288
 
 #define FREE_COMMAND "free | awk '$1 == \"Mem:\" {print $4;}'"
@@ -187,12 +188,31 @@ const char* get_update_file(const char* url)
 
 void post_update(yajl_val api_yajl)
 {
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char uci_lookup_str[BUFSIZ];
+	char sui_model[BUFSIZ];
 	struct data_holder* holder = NULL;
 	yajl_val latest_yajl = NULL;
 	yajl_val latest_version_yajl = NULL;
 	char errbuff[JSON_ERROR_BUFFER_LEN];
+	ctx = uci_alloc_context();
+
+	strncpy(uci_lookup_str, SUI_MODEL_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+			&& (ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		strncpy(sui_model, ptr.o->v.string, BUFSIZ);
+	} else {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to determine router model.\"]}");
+		syslog(LOG_ERR, "Unable to retrieve router model from uci at "SUI_MODEL_PATH);
+		return;
+	}
+
 	/* const char* device_path[] = {JSON_DEVICE_NAME, (const char*)0}; */
-	const char* latest_version_path[] = {JSON_DEVICE_NAME, "version", (const char*)0};
+	const char* latest_version_path[] = {sui_model, "version", (const char*)0};
 
 	if ((holder = get_latest_json()) == NULL) {
 		/* error getting latest.json (error message has already been sent via cgi). */
@@ -221,9 +241,9 @@ void post_update(yajl_val api_yajl)
 		yajl_val api_version_yajl = NULL;
 		yajl_val api_size_yajl = NULL;
 		yajl_val api_md5_yajl = NULL;
-		const char* latest_size_path[] = {JSON_DEVICE_NAME, "size", (const char*)0};
-		const char* latest_url_path[] = {JSON_DEVICE_NAME, "url", (const char*)0};
-		const char* latest_md5_path[] = {JSON_DEVICE_NAME, "md5", (const char*)0};
+		const char* latest_size_path[] = {sui_model, "size", (const char*)0};
+		const char* latest_url_path[] = {sui_model, "url", (const char*)0};
+		const char* latest_md5_path[] = {sui_model, "md5", (const char*)0};
 		const char* api_version_path[] = {"version", (const char*)0};
 		const char* api_size_path[] = {"size", (const char*)0};
 		const char* api_md5_path[] = {"md5", (const char*)0};

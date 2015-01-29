@@ -10,6 +10,9 @@
 
 #include "string_helpers.h"
 
+#define MAX_SSID_LENGTH 32
+#define MAX_PSK_LENGTH 63
+
 #define SSID_UCI_PATH "wireless.@wifi-iface[0].ssid"
 #define PSK_UCI_PATH "wireless.@wifi-iface[0].key"
 #define ENCRYPTION_MODE_UCI_PATH "wireless.@wifi-iface[0].encryption"
@@ -41,15 +44,43 @@ void post_wifi(yajl_val top)
 	psk[0] = '\0';
 	if (ssid_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(ssid_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			register size_t i = 0;
+			for (i = 0; tstr[i] != '\0' && i < MAX_SSID_LENGTH + 1; i++) {
+				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", MAX_SSID_LENGTH);
+					return;
+				}
+			}
+			if (i > MAX_SSID_LENGTH) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", MAX_SSID_LENGTH);
+				return;
+			}
 			strncpy(ssid, tstr, BUFSIZ);
 		}
 	}
 	if (psk_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(psk_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			register size_t i = 0;
+			for (i = 0; tstr[i] != '\0' && i < MAX_PSK_LENGTH + 1; i++) {
+				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"A PSK is currently limited to up to %d printable ASCII characters.\"]}", MAX_PSK_LENGTH);
+					return;
+				}
+			}
+			if (i > MAX_PSK_LENGTH) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A PSK is currently limited to up to %d printable ASCII characters.\"]}", MAX_PSK_LENGTH);
+				return;
+			}
 			strncpy(psk, tstr, BUFSIZ);
 		}
 	}

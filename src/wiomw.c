@@ -16,6 +16,10 @@
 #define AGENTKEY_PLACEHOLDER "openwrt-placeholder"
 #define WIOMW_CHANGED_UCI_PATH "sui.changed.wiomw"
 
+#define MAX_AGENTKEY_LENGTH 1024
+#define MAX_PUBTOKEN_LENGTH 1024
+#define MAX_PRIVTOKEN_LENGTH 4096
+
 void post_wiomw(yajl_val top)
 {
 	char errors[BUFSIZ];
@@ -38,22 +42,64 @@ void post_wiomw(yajl_val top)
 	privtoken[0] = '\0';
 	if (agentkey_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(agentkey_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			register size_t i = 0;
+			for (i = 0; tstr[i] != '\0' && i < MAX_AGENTKEY_LENGTH + 1; i++) {
+				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", MAX_AGENTKEY_LENGTH);
+					return;
+				}
+			}
+			if (i > MAX_AGENTKEY_LENGTH) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", MAX_AGENTKEY_LENGTH);
+				return;
+			}
 			strncpy(agentkey, tstr, BUFSIZ);
 		}
 	}
 	if (pubtoken_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(pubtoken_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			register size_t i = 0;
+			for (i = 0; tstr[i] != '\0' && i < MAX_PUBTOKEN_LENGTH + 1; i++) {
+				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PUBTOKEN_LENGTH);
+					return;
+				}
+			}
+			if (i > MAX_PUBTOKEN_LENGTH) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PUBTOKEN_LENGTH);
+				return;
+			}
 			strncpy(pubtoken, tstr, BUFSIZ);
 		}
 	}
 	if (privtoken_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(privtoken_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			register size_t i = 0;
+			for (i = 0; tstr[i] != '\0' && i < MAX_PRIVTOKEN_LENGTH + 1; i++) {
+				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PRIVTOKEN_LENGTH);
+					return;
+				}
+			}
+			if (i > MAX_PRIVTOKEN_LENGTH) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PRIVTOKEN_LENGTH);
+				return;
+			}
 			strncpy(privtoken, tstr, BUFSIZ);
 		}
 	}
