@@ -18,6 +18,8 @@
 #define GATEWAY_UCI_PATH "network.wan.gateway"
 #define DNS_UCI_PATH "network.wan.dns"
 
+#define MAX_IP_LENGTH 32
+
 #define GET_WAN_COMMAND "ifconfig -a | awk '$1 == \"'`uci get network.wan.ifname`'\" {getline; if ($1 == \"inet\") {raddr = $2; split(raddr, saddr, \":\"); rmask = $4; split(rmask, smask, \":\"); print saddr[2] \" \" smask[2];}}'"
 
 bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
@@ -137,22 +139,64 @@ void post_wan_ip(yajl_val top)
 	}
 	if (ipaddr_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A manually-set WAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 address.\"]}");
+				return;
+			}
 			strncpy(ipaddr, tstr, BUFSIZ);
 		}
 	}
 	if (netmask_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(netmask_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A manually-set WAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}");
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 netmask.\"]}");
+				return;
+			}
 			strncpy(netmask, tstr, BUFSIZ);
 		}
 	}
 	if (gateway_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(gateway_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"A manually-set WAN gateway address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 gateway address.\"]}");
+				return;
+			}
 			strncpy(gateway, tstr, BUFSIZ);
 		}
 	}
@@ -161,9 +205,24 @@ void post_wan_ip(yajl_val top)
 			int i;
 			char* tdns = dns;
 			size_t dnslen = BUFSIZ;
-			/* TODO: validate */
 			for (i = 0; i < dns_yajl->u.array.len; i++) {
-				astpnprintf(&tdns, &dnslen, "%s", YAJL_GET_STRING(dns_yajl->u.array.values[i]));
+				char* tstr = YAJL_GET_STRING(dns_yajl->u.array.values[i]);
+				int res = 0;
+				struct in_addr temp;
+				if (tstr[0] == '\0'
+						|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+						|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+					printf("Status: 422 Unprocessable Entity\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"A manually-set WAN DNS address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+					return;
+				} else if (res != 1) {
+					printf("Status: 500 Internal Server Error\n");
+					printf("Content-type: application/json\n\n");
+					printf("{\"errors\":[\"Unable to parse a supplied WAN IPv4 DNS address.\"]}");
+					return;
+				}
+				astpnprintf(&tdns, &dnslen, "%s", tstr);
 				dns_count++;
 				if (dnslen > 0) {
 					dnslen--;

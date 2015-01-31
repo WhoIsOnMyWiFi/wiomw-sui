@@ -11,6 +11,7 @@
 #include "string_helpers.h"
 
 #define MAX_SSID_LENGTH 32
+#define MIN_PSK_LENGTH 8
 #define MAX_PSK_LENGTH 63
 
 #define SSID_UCI_PATH "wireless.@wifi-iface[0].ssid"
@@ -71,14 +72,14 @@ void post_wifi(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"A PSK is currently limited to up to %d printable ASCII characters.\"]}", MAX_PSK_LENGTH);
+					printf("{\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", MIN_PSK_LENGTH, MAX_PSK_LENGTH);
 					return;
 				}
 			}
-			if (i > MAX_PSK_LENGTH) {
+			if (i < MIN_PSK_LENGTH || i > MAX_PSK_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A PSK is currently limited to up to %d printable ASCII characters.\"]}", MAX_PSK_LENGTH);
+				printf("{\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", MIN_PSK_LENGTH, MAX_PSK_LENGTH);
 				return;
 			}
 			strncpy(psk, tstr, BUFSIZ);

@@ -15,6 +15,8 @@
 #define NETMASK_UCI_PATH "network.lan.netmask"
 #define LAN_CHANGED_UCI_PATH "sui.changed.lan"
 
+#define MAX_IP_LENGTH 32
+
 bool set_lan_ip4(const char* base, const char* netmask)
 {
 	struct uci_context* ctx;
@@ -119,15 +121,43 @@ void post_lan_ip(yajl_val top)
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
 	if (ipaddr_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"The LAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to parse supplied LAN IPv4 address.\"]}");
+				return;
+			}
 			strncpy(ipaddr, tstr, BUFSIZ);
 		}
 	}
 	if (netmask_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(netmask_yajl);
-		/* TODO: validate */
 		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"The LAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}");
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to parse supplied LAN IPv4 netmask.\"]}");
+				return;
+			}
 			strncpy(netmask, tstr, BUFSIZ);
 		}
 	}
