@@ -1,6 +1,7 @@
 @import url(standardize.css);
 @import url(skeleton.css);
 /*  Background Color and Gradient*/
+
 html {
   height: 100%; }
 
@@ -88,6 +89,40 @@ input[type="button"].button-primary:hover, input[type="button"].button-primary:a
 {
     background: #244dc6;
     border: none; 
+}
+
+button.button-cancel,
+input[type="submit"].button-cancel,
+input[type="reset"].button-cancel,
+input[type="button"].button-cancel
+{
+  color: #FFF;
+  background: #7C7C7C;
+  border: none; 
+}
+button.button-cancel:hover, button.button-cancel:active,
+input[type="submit"].button-cancel:hover, input[type="submit"].button-cancel:active,
+input[type="reset"].button-cancel:hover, input[type="reset"].button-cancel:active,
+input[type="button"].button-cancel:hover, input[type="button"].button-cancel:active
+{
+    color: #FFF;
+    background: #9C9C9C;
+    border: none; 
+}
+
+/*
+ Handle Nav 
+*/
+nav.primary ul,
+nav.primary ul li{
+    margin: 0px;
+    float: left;
+    position: relative;
+}
+nav.primary ul li a{
+    display: inline-block;
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
 /*  A Cleaner Underline

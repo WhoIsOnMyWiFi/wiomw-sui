@@ -110,6 +110,7 @@
 	</div> \
       </div> \
       ');
+      history.pushState('Login','Login','');
   }
   
   function login_action()
@@ -498,7 +499,7 @@
   function mainmenu_gui()
   {
       $("#h1msg").html('Router Configuration');
-  
+      
       $("#form_main").html(' \
         <div class="row">	\
           <div class="twelve columns">	\
@@ -523,7 +524,18 @@
           <div class="twelve columns">	\
             <span class="instructionText"></span>	\
           </div>	\
-        </div>	  \
+        </div>	         \
+        <div class="row">	\
+          <div class="twelve columns">	\
+	    <ul>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_psk_gui();" value="Change Password (PSK)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
+	      <li><input type="button" class="button-primary u-float-left" onClick="mm_logout();" value="Logout" /></li>	\
+	      </ul>	\
+	  </div>	\
+        </div>	\
 	');    
 	
 
@@ -624,8 +636,8 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-secondary u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <span class="instructionText"></span>	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText"></span>	\
           </div>	\
         </div>	\
         ';
@@ -750,8 +762,8 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-secondary u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <span class="instructionText"></span>	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText"></span>	\
           </div>	\
         </div>	\
         ';
@@ -810,7 +822,8 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">Please Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">Please Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
           </div>	\
         </div>	  \
 	');        
@@ -884,9 +897,47 @@
               Future Advanced Menu \
             </legend>	\
           </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="sixteen columns">	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_routerupdate_action();" value="Check for Router Updates" />	\
+          </div>	\
         </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">Please Note:  Updating to the latest firmware will require a reboot on the router.</span>	\
+          </div>	\
+        </div>	  \
 	');        
   }  
+  
+  function advmm_routerupdate_action()
+  {
+      
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?wifi", json_data)
+	.done(function( json_response ) {		
+		
+	  alert(json_response);
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").html("Network Settings Error");    
+	      switch(xhr.status)
+	      {
+		case 403: alert("Invalid Product Key"); break;
+		default: alert(xhr.status); break;
+	      }
+	});                   
+  }    
+  
   
   $(document).ready(function() {
     login_gui();    
@@ -914,6 +965,7 @@
     <div class="container">
         
 	  <div id="form_main">  
+                                                              
                              
 	  </div>
 	  
