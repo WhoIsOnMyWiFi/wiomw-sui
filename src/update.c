@@ -24,7 +24,7 @@
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
 #define REBOOT_DELAY "15"
 #define JSON_ERROR_BUFFER_LEN 1024
-#define MINIMUM_EXTRA_MEMORY 524288
+#define MINIMUM_EXTRA_MEMORY 5243
 
 #define FREE_COMMAND "free | awk '$1 == \"Mem:\" {print $4;}'"
 #define SYSUPGRADE_COMMAND "sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " ; echo $?"
