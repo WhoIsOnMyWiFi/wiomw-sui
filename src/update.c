@@ -155,13 +155,16 @@ const char* get_update_file(const char* url)
 	char error_buffer[BUFSIZ];
 	FILE* update_file;
 	long http_code = 0;
+	char full_url[BUFSIZ];
 
 	if ((update_file = fopen(SYSUPGRADE_COMMAND, "w")) == NULL) {
 		syslog(LOG_ERR, "Unable to open update file for writing: %s", strerror(errno));
 		return "Error while preparing update file.";
 	}
 
-	curl_easy_setopt(curl_handle, CURLOPT_URL, LATEST_JSON_URL);
+	snprintf(full_url, BUFSIZ, BASE_URL "%s", url);
+
+	curl_easy_setopt(curl_handle, CURLOPT_URL, full_url);
 	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, CA_FILE);
 	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, update_file);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, error_buffer);
