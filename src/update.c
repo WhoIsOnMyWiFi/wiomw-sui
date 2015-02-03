@@ -36,7 +36,7 @@ struct data_holder {
 
 int version_compare(char* new)
 {
-	if (strcmp(VERSION, new) == 0) {
+	if (strcmp(VERSION "-r" RELEASE_NUMBER, new) == 0) {
 		return 0;
 	} else {
 		unsigned short state = 0;

@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([openwrt-sui], [0.2.8], [bugs@whoisonmywifi.com])
+AC_INIT([openwrt-sui], [0.2.9], [bugs@whoisonmywifi.com])
 AC_CONFIG_SRCDIR([src/wifi_cgi.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
@@ -52,6 +52,16 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 #AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([getspnam stpcpy strdup strerror strnlen strtoul])
+
+AC_ARG_WITH([release],
+	AC_HELP_STRING([--with-release=NUM],
+		[Set release number, default: 1]),
+	AS_IF([test "0${withval}" -ge 1],
+	      AS_VAR_COPY([release_number], [{withval}]),
+	      AC_MSG_ERROR([Release number must be an integer greater than 0.])),
+	AS_VAR_SET([release_number], [1]))
+AC_DEFINE_UNQUOTED([RELEASE_NUMBER], "${release_number}", [Release number])
+	
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
