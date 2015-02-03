@@ -20,7 +20,7 @@
 
 #define BASE_URL "https://www.whoisonmywifi.net/hw/"
 #define LATEST_JSON_URL BASE_URL "latest.json"
-#define CA_FILE "/etc/wiomw/ca.pem"
+#define CA_FILE "/etc/ssl/certs/f081611a.0"
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
 #define REBOOT_DELAY "15"
 #define JSON_ERROR_BUFFER_LEN 1024
@@ -88,7 +88,7 @@ static size_t latest_json_cb(void* buffer, size_t size, size_t nmemb, void* raw_
 	if (*(void**)raw_holder == NULL) {
 		*(void**)raw_holder = malloc(sizeof(struct data_holder) + (size * nmemb) + 1);
 	} else {
-		*(void**)raw_holder = realloc(*(void**)raw_holder, sizeof(struct data_holder) + (size * nmemb) + 1);
+		*(void**)raw_holder = realloc(*(void**)raw_holder, sizeof(struct data_holder) + (*(struct data_holder**)raw_holder)->offset + (size * nmemb) + 1);
 	}
 	holder = *(struct data_holder**)raw_holder;
 	if (holder == NULL) {
