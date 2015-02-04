@@ -175,7 +175,7 @@ const char* get_update_file(const char* url)
 	long http_code = 0;
 	char full_url[BUFSIZ];
 
-	if ((update_file = fopen(SYSUPGRADE_COMMAND, "w")) == NULL) {
+	if ((update_file = fopen(UPGRADE_FILE, "w")) == NULL) {
 		syslog(LOG_ERR, "Unable to open update file for writing: %s", strerror(errno));
 		return "Error while preparing update file.";
 	}
