@@ -87,6 +87,7 @@ static size_t latest_json_cb(void* buffer, size_t size, size_t nmemb, void* raw_
 
 	if (*(void**)raw_holder == NULL) {
 		*(void**)raw_holder = malloc(sizeof(struct data_holder) + (size * nmemb) + 1);
+		(*(struct data_holder**)raw_holder)->offset = 0;
 	} else {
 		*(void**)raw_holder = realloc(*(void**)raw_holder, sizeof(struct data_holder) + (*(struct data_holder**)raw_holder)->offset + (size * nmemb) + 1);
 	}
