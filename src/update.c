@@ -24,9 +24,10 @@
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
 #define REBOOT_DELAY "15"
 #define JSON_ERROR_BUFFER_LEN 1024
-#define MINIMUM_EXTRA_MEMORY 5243
+#define MINIMUM_EXTRA_MEMORY 2097152
 
 #define FREE_COMMAND "free | awk '$1 == \"Mem:\" {print $4;}'"
+#define MD5_COMMAND "md5sum " UPGRADE_FILE
 #define SYSUPGRADE_COMMAND "sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " ; echo $?"
 
 struct data_holder {
@@ -446,7 +447,7 @@ void post_update(yajl_val api_yajl)
 			free(holder);
 			pclose(command_output);
 			return;
-		} else if (free_mem < YAJL_GET_INTEGER(latest_size_yajl) + MINIMUM_EXTRA_MEMORY) {
+		} else if ((free_mem * 1024) < YAJL_GET_INTEGER(latest_size_yajl) + MINIMUM_EXTRA_MEMORY) {
 			/* insufficient memory to download new update file */
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
@@ -486,7 +487,7 @@ void post_update(yajl_val api_yajl)
 			free(holder);
 			pclose(command_output);
 			return;
-		} else if (md5_file(UPGRADE_FILE, raw_hash) != 0) {
+		} else if (pclose(command_output) != 0 || (command_output = popen(MD5_COMMAND, "r")) == NULL) {
 			/* unable to get md5 of new update file */
 			int my_errno = errno;
 			printf("Status: 500 Internal Server Error\n");
@@ -497,25 +498,7 @@ void post_update(yajl_val api_yajl)
 			free(holder);
 			pclose(command_output);
 			return;
-		} else if (snprintf(hash,
-					33,
-					"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-					raw_hash[0],
-					raw_hash[1],
-					raw_hash[2],
-					raw_hash[3],
-					raw_hash[4],
-					raw_hash[5],
-					raw_hash[6],
-					raw_hash[7],
-					raw_hash[8],
-					raw_hash[9],
-					raw_hash[10],
-					raw_hash[11],
-					raw_hash[12],
-					raw_hash[13],
-					raw_hash[14],
-					raw_hash[15]) != 32) {
+		} else if (fgets(hash, 33, command_output) == NULL) {
 			/* unable to reformat md5 (very weird) */
 			int my_errno = errno;
 			printf("Status: 500 Internal Server Error\n");
