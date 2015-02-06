@@ -322,6 +322,7 @@ void post_update(yajl_val api_yajl)
 			}
 		} else if (stat_res.st_size != YAJL_GET_INTEGER(latest_size_yajl)) {
 			/* old update file was wrong size, so it should be removed and replaced */
+			syslog(LOG_WARNING, "Size of previously downloaded update file is wrong, deleting it.");
 			if (remove(UPGRADE_FILE) != 0) {
 				/* unable to remove old update file */
 				int my_errno = errno;
@@ -333,7 +334,7 @@ void post_update(yajl_val api_yajl)
 				free(holder);
 				return;
 			}
-		} else if (md5_file(UPGRADE_FILE, raw_hash) != 0) {
+		} else if ((command_output = popen(MD5_COMMAND, "r")) == NULL) {
 			/* unable to get md5 of old update file */
 			int my_errno = errno;
 			printf("Status: 500 Internal Server Error\n");
@@ -343,25 +344,7 @@ void post_update(yajl_val api_yajl)
 			syslog(LOG_ERR, "Unable to md5 the old update file: %s", strerror(my_errno));
 			free(holder);
 			return;
-		} else if (snprintf(hash,
-					33,
-					"%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-					raw_hash[0],
-					raw_hash[1],
-					raw_hash[2],
-					raw_hash[3],
-					raw_hash[4],
-					raw_hash[5],
-					raw_hash[6],
-					raw_hash[7],
-					raw_hash[8],
-					raw_hash[9],
-					raw_hash[10],
-					raw_hash[11],
-					raw_hash[12],
-					raw_hash[13],
-					raw_hash[14],
-					raw_hash[15]) != 32) {
+		} else if (fgets(hash, 33, command_output) == NULL) {
 			/* unable to reformat md5 (very weird) */
 			int my_errno = errno;
 			printf("Status: 500 Internal Server Error\n");
@@ -373,6 +356,7 @@ void post_update(yajl_val api_yajl)
 			return;
 		} else if (strcmp(YAJL_GET_STRING(latest_md5_yajl), hash) != 0) {
 			/* old update file has wrong md5, so it should be removed and replaced */
+			syslog(LOG_WARNING, "MD5 of previously downloaded update file is wrong, deleting it.");
 			if (remove(UPGRADE_FILE) != 0) {
 				/* unable to remove old update file */
 				int my_errno = errno;
@@ -386,7 +370,7 @@ void post_update(yajl_val api_yajl)
 			}
 		} else if (api_version_yajl != NULL) {
 			/* old update file is legit and user has authorized upgrade */
-			if ((command_output = popen(SYSUPGRADE_COMMAND, "r")) == NULL) {	
+			if (pclose(command_output) != 0 || (command_output = popen(SYSUPGRADE_COMMAND, "r")) == NULL) {	
 				/* unable to open shell */
 				int my_errno = errno;
 				printf("Status: 500 Internal Server Error\n");
