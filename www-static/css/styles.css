@@ -176,3 +176,16 @@ td {
   background-size: 1px 1px;
   background-position: 0 95%;
   text-shadow: 2px 0 #293c92, 1px 0 #293c92, -1px 0 #293c92, -2px 0 #293c92; }
+
+/* Main Menu specific style */
+.mm_link ul{
+  list-style-type: none;
+}
+.mm_link a{
+    font-size: 18px;
+    color: #3ECEFB;
+    text-decoration: underline;    
+}
+.mm_link a:hover{
+    color: #FFF;
+}
