@@ -494,46 +494,34 @@
   
   function mainmenu_gui()
   {
-      $("#h1msg").html('Router Configuration');
+      //$("#h1msg").html('Router Configuration');
       
-      $("#form_main").html(' \
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <legend>	\
-              SSID: <span id="label_ssid">...</span><br/>	\
-              PSK: <span id="label_psk">...</span><br/>	\
-            </legend>	\
-          </div>	\
-        </div>	 \
-        <div class="row">	\
-          <div class="twelve columns">	\
-	    <ul>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_psk_gui();" value="Change Password (PSK)" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_logout();" value="Logout" /></li>	\
-	      </ul>	\
-	  </div>	\
-        </div>	\
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <span class="instructionText"></span>	\
-          </div>	\
-        </div>	         \
-        <div class="row">	\
-          <div class="twelve columns">	\
-	    <ul>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_psk_gui();" value="Change Password (PSK)" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_ssid_gui();" value="Change Network Name (SSID)" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_wiomw_gui();" value="Who\'s On My Wifi Online Menu" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_advancedmenu_gui();" value="Advanced Menu" /></li>	\
-	      <li><input type="button" class="button-primary u-float-left" onClick="mm_logout();" value="Logout" /></li>	\
-	      </ul>	\
-	  </div>	\
-        </div>	\
-	');    
-	
+      
+      var form_main_html = '	\
+	<table class="u-full-width">	\
+	<caption>Your Current Settings</caption>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Wifi Name</div>	\
+	      <div class="settings-value"><label id="label_ssid">';
+	      form_main_html = form_main_html + g_network_ssid;
+	      form_main_html = form_main_html + '\
+	      </label></div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_ssid_gui();" >Edit</a></td>	\
+	  </tr>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Wifi Password</div>	\
+	      <div class="settings-value"><label id="label_psk">';
+	      form_main_html = form_main_html + g_network_psk;
+	      form_main_html = form_main_html + '\
+	      </label></div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_psk_gui();" >Edit</a></td>	\
+	  </tr>	\
+	</table>';
+      $("#form_main").html(form_main_html);
 
 	if( (g_network_ssid == "") || (g_network_psk == "") )
 	{
@@ -550,7 +538,7 @@
 		
 		g_network_ssid = json_response.ssid;
 		g_network_psk = json_response.psk;
-		
+		alert(g_network_ssid);
 		$("#label_ssid").html(g_network_ssid);
 		$("#label_psk").html(g_network_psk);
 		
