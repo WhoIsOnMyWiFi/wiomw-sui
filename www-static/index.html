@@ -40,7 +40,7 @@
     g_internet_connected = true;
     alert("Internet is connected");
     $('<script>').attr({
-	src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
 	type: 'text/javascript'}).appendTo('body');    
   }
   function internet_is_down() {
@@ -71,12 +71,12 @@
       result = true;
       //alert("Internet is connected");
       $('<script>').attr({
-	  src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	  src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
 	  type: 'text/javascript'}).appendTo('body');        
     }
     else
     {
-      //alert("Internet is disconnected");
+      alert("Internet is disconnected");//need a better gui or something to help with internet connection problems
     }
     return result;
   }
@@ -383,7 +383,7 @@
       
       //Remember, this part is somewhat complicated
       //You have to call a remote javascript function that checks the server and generates public and private token
-      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      //the function call exists on the remote www.whoisonmywifi.net/js server and is included in the detect_internet_connection function
       jsc_token_setup_wiomw_agent(
 	  g_wiomw_username,
 	  g_wiomw_password,
@@ -440,12 +440,13 @@
 	</div>  \
       ');  
   
-      $("#form_main").html(' \
+      var main_form_html = ' \
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Now, lets reboot your Router and You\'re done.	\
-              Remember to connect your new Wireless Network ( g_network_ssid ) \
+              Now, lets reboot your Router and You\'re done.';
+      main_form_html = main_form_html + 'Remember to connect to your new Wireless Network (' +  g_network_ssid + ') ';
+      main_form_html = main_form_html + ' \
             </legend>	\
           </div>	\
         </div>	 \
@@ -460,9 +461,8 @@
           <div class="twelve columns">	\
             <span class="instructionText">NOTE: This setup wizard is now complete.  It may take your wireless router 30 seconds to restart</span>	\
           </div>	\
-        </div>	  \
-	');
-  
+        </div>';
+	$("#form_main").html(main_form_html);	
   }  
   
   function setup_reboot_action()
@@ -473,15 +473,14 @@
       };      
       
       var json_data = $.toJSON(reboot_creds);
-      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?reboot", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("Router Restarting" + json_response);
+	  alert("Restarting Router.  Please wait 30 seconds");//need a better message or a waiting javascript
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
+	      $("#statusText").html("Reboot Error");
 	      switch(xhr.status)
 	      {
 		case 403: alert("Invalid Product Key"); break;
@@ -836,7 +835,7 @@
       
       //Remember, this part is somewhat complicated
       //You have to call a remote javascript function that checks the server and generates public and private token
-      //the function call exists on the remote beta.whoisonmywifi.net/js server and is included in the detect_internet_connection function
+      //the function call exists on the remote www.whoisonmywifi.net/js server and is included in the detect_internet_connection function
       jsc_token_setup_wiomw_agent(
 	  g_wiomw_username,
 	  g_wiomw_password,
@@ -923,10 +922,26 @@
       var json_data = $.toJSON(network_creds);
       alert(json_data);
       
-    $.post("cgi-bin/sui.cgi?wifi", json_data)
+    $.post("cgi-bin/sui.cgi?update", json_data)
 	.done(function( json_response ) {		
-		
-	  alert(json_response);
+		//call with just psalt and phash
+		//returns: version, size, md5, and update (available, ready, or none)		
+		//if update=ready (and not 500 ok)
+		//send back psalt, phash, version, md5, and size
+		//this then causes the router to start sysupgrade, have them wait 60 seconds
+	  //alert(json_response);
+	  if(json_response.update == "none")
+	  {
+	    alert("No Updates Available at this time");
+	  }
+	  if(json_response.update = "available")
+	  {
+	    alert("Update is available but is not able to be downloaded");
+	  }
+	  if(json_response.update = "ready")
+	  {
+	    alert("Update is available and downloaded to your router");
+	  }
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      $("#statusText").html("Network Settings Error");    

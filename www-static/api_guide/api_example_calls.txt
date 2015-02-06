@@ -43,3 +43,12 @@ http://192.168.1.1/cgi-bin/sui.cgi?mac
 }
 
 or just no body at all
+
+
+    $.post("cgi-bin/sui.cgi?update", json_data)
+	.done(function( json_response ) {		
+		//call with just psalt and phash
+		//returns: version, size, md5, and update (available, ready, or none)		
+		//if update=ready (and not 500 ok)
+		//send back psalt, phash, version, md5, and size
+		//this then causes the router to start sysupgrade, have them wait 60 seconds
