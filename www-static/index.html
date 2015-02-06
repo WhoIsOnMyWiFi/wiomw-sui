@@ -76,7 +76,7 @@
     }
     else
     {
-      alert("Internet is disconnected");//need a better gui or something to help with internet connection problems
+      //handle the false result in the specific gui page
     }
     return result;
   }
@@ -129,17 +129,12 @@
 		
 		if(json_response.setup_required)
 		{
-		  //alert("This router needs to be setup");
 		  setup_detect_internet_gui();
 		}		
 		else
 		{
-		  //alert("This router needs to be managed");
 		  mainmenu_gui();//go to the main menu
 		}
-		
-		//setup_detect_internet_gui();
-		//mainmenu_gui();//go to the main menu
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -207,22 +202,24 @@
   function setup_internet_error_gui()
   {
       $("#form_usermsg").html(' \
-      	<div class="container"> \
-	  <h2>Internet Not Connected!</h2> \
-	</div>  \
+      <div class="error-message">	\
+	<div class="container">	\
+	  <h2 >There is a problem with your internet connection</h2>	\
+	</div>	\
+      </div>     \
       ');
       
       $("#form_main").html(' \
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              We have determined that you are not connected to the internet	\
+              We have determined that you are not connected to the internet.	\
             </legend>	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE:  The blue cabled labled WAN needs to be connected either to another wireless router, cable modem, or DSL connection </span>	\
+            <span class="instructionText">NOTE:  The blue port labled WAN needs to be connected to a Cable Modem, DSL Connection, or other wireless router LAN port with the provided cable.</span>	\
           </div>	\
         </div>      \
       ');      
