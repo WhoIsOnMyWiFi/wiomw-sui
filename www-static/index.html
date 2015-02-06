@@ -503,9 +503,7 @@
 	  <tr class="settings-displayRow">	\
 	    <th>	\
 	      <div class="settings-label">Wifi Name</div>	\
-	      <div class="settings-value"><label id="label_ssid">';
-	      form_main_html = form_main_html + g_network_ssid;
-	      form_main_html = form_main_html + '\
+	      <div class="settings-value"><label id="label_ssid">... \
 	      </label></div>	\
 	    </th>	\
 	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_ssid_gui();" >Edit</a></td>	\
@@ -513,14 +511,36 @@
 	  <tr class="settings-displayRow">	\
 	    <th>	\
 	      <div class="settings-label">Wifi Password</div>	\
-	      <div class="settings-value"><label id="label_psk">';
-	      form_main_html = form_main_html + g_network_psk;
-	      form_main_html = form_main_html + '\
+	      <div class="settings-value"><label id="label_psk">... \
 	      </label></div>	\
 	    </th>	\
 	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_psk_gui();" >Edit</a></td>	\
 	  </tr>	\
-	</table>';
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Who\'s On My Wifi</div>\
+	      <div class="settings-label">Online Settings \
+	      </div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_wiomw_gui();" >Edit</a></td>	\
+	  </tr>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Advanced Menu</div>\
+	      <div class="settings-value"> \
+	      </div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_advancedmenu_gui();" >Go</a></td>	\
+	  </tr>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Logout</div>\
+	      <div class="settings-value"> \
+	      </div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_logout();" >Go</a></td>	\
+	  </tr>	\
+	  </table>';
       $("#form_main").html(form_main_html);
 
 	if( (g_network_ssid == "") || (g_network_psk == "") )
@@ -538,7 +558,6 @@
 		
 		g_network_ssid = json_response.ssid;
 		g_network_psk = json_response.psk;
-		alert(g_network_ssid);
 		$("#label_ssid").html(g_network_ssid);
 		$("#label_psk").html(g_network_psk);
 		
@@ -604,7 +623,7 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Change Shared Password \
+              Edit your WIFI Password \
             </legend>	\
           </div>	\
         </div>	 \
@@ -615,13 +634,15 @@
       form_main_html = form_main_html + ' \
 	</div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="mm_psk_action();" value="Change Password" />	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_psk_action();" value="Save Password" />	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
             <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <br/><span class="instructionText"></span>	\
+            <br/><span class="instructionText">NOTE: This is the Shared Wireless Password that you and your friends or family use to connect to your WiFi.   \
+            It can be between 8 and 64 characters. And remember this will be shared.\
+            </span>	\
           </div>	\
         </div>	\
         ';
@@ -730,7 +751,7 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Change Network Name (SSID) \
+              Edit your WIFI Name \
             </legend>	\
           </div>	\
         </div>	 \
@@ -741,13 +762,15 @@
       form_main_html = form_main_html + ' \
 	</div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="mm_ssid_action();" value="Change Network Name" />	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_ssid_action();" value="Save Name" />	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
             <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <br/><span class="instructionText"></span>	\
+            <br/><span class="instructionText">NOTE: A WiFi name is also known as an SSID. \
+            It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password.\
+	    </span>	\
           </div>	\
         </div>	\
         ';
@@ -791,7 +814,7 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Change Who\'s On My Wifi Online Login \
+              Edit Who\'s On My Wifi Online Login \
             </legend>	\
           </div>	\
         </div>	 \
@@ -801,13 +824,13 @@
             <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
           </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Connect to Online" />	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Save Login" />	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
             <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <br/><span class="instructionText">Please Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
+            <br/><span class="instructionText">Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
           </div>	\
         </div>	  \
 	');        
