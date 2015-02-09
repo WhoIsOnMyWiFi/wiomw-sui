@@ -34,33 +34,18 @@
   //************************************
   //Detect if the internet is connected
   //************************************
-  /*
-  function internet_is_connected() {
-  // Grab the GOOGLE CMD
-    g_internet_connected = true;
-    alert("Internet is connected");
-    $('<script>').attr({
-	src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
-	type: 'text/javascript'}).appendTo('body');    
-  }
-  function internet_is_down() {
-  // Grab the LOCAL JQ
-    alert("Internet Is Not Connected");
-  }
- 
-  function detect_internet_connection()
+  function detect_internet_connection_with_callbacks(callback_connected, callback_disconnected)
   {
-    alert("Begin Internet Detection");
-    
+    //check if Amazon S3 is up and running
     var i = new Image();
-    i.onload = internet_is_connected;
-    i.onerror = internet_is_down;
+    i.onload = callback_connected;
+    i.onerror = callback_disconnected;
     // CHANGE IMAGE URL TO ANY IMAGE YOU KNOW IS LIVE
     i.src = 'http://www.whoisonmywifi.com.s3.amazonaws.com/internet_traffic.png?d=' + escape(Date());
     // escape(Date()) is necessary to override possibility of image coming from cache    
     
   }  
-  */
+  /*
   function detect_internet_connection()
   {
     //standard method
@@ -80,7 +65,7 @@
     }
     return result;
   }
-  
+  */
   //************************************
   //*Handle Login Page
   //************************************
@@ -127,6 +112,7 @@
 		g_psalt = json_response.psalt;
 		g_phash = json_response.phash;	
 		
+		
 		if(json_response.setup_required)
 		{
 		  setup_detect_internet_gui();
@@ -135,6 +121,8 @@
 		{
 		  mainmenu_gui();//go to the main menu
 		}
+		
+		//setup_detect_internet_gui();
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -188,6 +176,10 @@
   
   function setup_detect_internet_action()
   {
+  
+    detect_internet_connection_with_callbacks(setup_internet_is_connected, setup_internet_is_down);
+    
+    /*
     var internet_is_connected = detect_internet_connection();
     if(internet_is_connected)
     {
@@ -197,17 +189,36 @@
     {
       setup_internet_error_gui();
     }  
+    */
   }
+  
+  function setup_internet_is_connected() 
+  {
+    //if the internet is connected, add the wiomw remote client functions, then send them to the ssid page
+    g_internet_connected = true;
+    $('<script>').attr({
+	src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	type: 'text/javascript'}).appendTo('body');    
+    setup_ssid_gui();
+  }
+  function setup_internet_is_down() 
+  {
+    //if the internet is down, send them to a page that can help them establish the internet connection
+    setup_internet_error_gui();
+  }
+   
+  
   
   function setup_internet_error_gui()
   {
       $("#form_usermsg").html(' \
       <div class="error-message">	\
 	<div class="container">	\
-	  <h2 >There is a problem with your internet connection</h2>	\
+	  <h2 id="h2_error">There is a problem with your internet connection</h2>	\
 	</div>	\
       </div>     \
       ');
+      $("#h2_error").show();//in case it was hidden before
       
       $("#form_main").html(' \
         <div class="row">	\
@@ -218,16 +229,31 @@
           </div>	\
         </div>	\
         <div class="row">	\
-          <div class="twelve columns">	\
-            <span class="instructionText">NOTE:  The blue port labled WAN needs to be connected to a Cable Modem, DSL Connection, or other wireless router LAN port with the provided cable.</span>	\
+          <div class="one-third column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_internet_error_gui_action();" value="Check Internet Connection Again" />	\
+            <br/><input type="button" class="button-primary u-float-left" onClick="setup_reboot_action();" value="Restart Router" />\
           </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  The blue port labled WAN needs to be connected to a Cable Modem, DSL Connection, or other wireless router LAN port with the provided cable. \
+            <br/>You may also need to restart your router, once a cable is connected to the WAN port. \
+            </span>\
+	  </div>	\
         </div>      \
       ');      
       
       $("#statusText").html("");      
     
   }  
-  
+  function setup_internet_error_gui_action()
+  {
+    $("#h2_error").hide();
+    $("#statusText").html("Checking Internet Connection...").show().fadeOut(3000);   
+    setup_detect_internet_action();
+  }
   
   
   
