@@ -506,12 +506,14 @@
 	.done(function( json_response ) {		
 		
 	  alert("Restarting Router.  Please wait 30 seconds");//need a better message or a waiting javascript
-	  $("#statusText").show().html("Restarting Reouter");
+	  $("#form_main").html('');
+	  $("#statusText").show().html("Restarting Router");
 	  var opts = { 
-	    lines: 15
+	    lines: 12,
+	    color: '#fff'
 	  };
 	  var target = document.getElementById('statusText');
-	  var spinner = new Spinner().spin(target);
+	  var spinner = new Spinner(opts).spin(target);
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
