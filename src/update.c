@@ -23,8 +23,8 @@
 #define CA_FILE "/etc/ssl/certs/f081611a.0"
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
 #define OUTPUT_FILE "/tmp/sysupgrade.log"
-#define REBOOT_DELAY "15"
-#define POLL_DELAY "15"
+#define REBOOT_DELAY "30"
+#define POLL_DELAY "45"
 #define JSON_ERROR_BUFFER_LEN 1024
 #define MINIMUM_EXTRA_MEMORY 2097152
 

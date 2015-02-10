@@ -56,6 +56,10 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			pclose(output);
 			return false;
 		} else {
+			size_t len = 0;
+			if ((len = strnlen(delim, BUFSIZ)) < BUFSIZ && delim[len] == '\n') {
+				delim[len] = '\0';
+			}
 			*delim = '\0';
 			if (inet_pton(AF_INET, tstr, base) != 1) {
 				*base = 0;
