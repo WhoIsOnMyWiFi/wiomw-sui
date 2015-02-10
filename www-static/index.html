@@ -507,13 +507,14 @@
 		
 	  alert("Restarting Router.  Please wait 30 seconds");//need a better message or a waiting javascript
 	  $("#form_main").html('');
-	  $("#statusText").show().html("Restarting Router");
+	  $("#statusText").show().html("Restarting Router.<br/><br/>You will be redirected to the login screen in 30 seconds.");
 	  var opts = { 
 	    lines: 12,
 	    color: '#fff'
 	  };
 	  var target = document.getElementById('statusText');
 	  var spinner = new Spinner(opts).spin(target);
+	  setTimeout(function() { location.href='http://myrouter.lan'; }, 30000);
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
