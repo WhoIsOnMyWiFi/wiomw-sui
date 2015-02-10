@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
+  <script type="text/javascript" src="js/spin.min.js">;</script>  
   <script type="text/javascript">
   
   //handle global login variables
@@ -112,7 +113,7 @@
 		g_psalt = json_response.psalt;
 		g_phash = json_response.phash;	
 		
-		
+		/*
 		if(json_response.setup_required)
 		{
 		  setup_detect_internet_gui();
@@ -121,16 +122,21 @@
 		{
 		  mainmenu_gui();//go to the main menu
 		}
-		
-		//setup_detect_internet_gui();
+		*/
+		setup_detect_internet_gui();
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Login Error");    
-	      switch(xhr.status)
+	      $("#statusText").show().html("Login Error").fadeOut(3000);    
+	      var json_result = $.parseJSON(xhr.responseText);
+	      for(var i = 0; i < json_result.errors.length; i++)
 	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
+		if(json_result.errors[i] == "Invalid password.")
+		{	alert("Invalid Product Key\r\n\r\nPlease enter Product Key again.");
+		}
+		else
+		{	alert(json_result.errors[i]);
+		}
 	      }
 	});                 
   }  
@@ -295,7 +301,7 @@
   function setup_ssid_action()
   {  
     var statusmsg = "Validating SSID...";
-    $("#statusText").html(statusmsg);
+    $("#statusText").show().html(statusmsg);
     g_network_ssid = $("#ssid").val();
     //alert("Setting SSID to " + g_network_ssid);          
     setup_psk_gui();
@@ -349,7 +355,6 @@
       };      
       
       var json_data = $.toJSON(network_creds);
-      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
@@ -359,12 +364,11 @@
 	  setup_wiomw_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);
+	      $("#statusText").show().html("Network Settings Error");
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }      
 	});                   
       
   }  
@@ -395,6 +399,7 @@
           </div>	\
         </div>	  \
 	');
+      $("#statusText").show().html("");
   
   }
 
@@ -446,12 +451,12 @@
 	  setup_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); setup_reboot_gui(); break;
-	      }
+	      $("#statusText").show().html("Network Settings Error");    
+	      var json_result = $.parseJSON(xhr.responseText);
+	      $("#statusText").show().html("Network Settings Error");
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	      
 	});   
   }
   
@@ -467,8 +472,8 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              Now, lets reboot your Router and You\'re done.';
-      main_form_html = main_form_html + 'Remember to connect to your new Wireless Network (' +  g_network_ssid + ') ';
+              Now, lets reboot your Router and You\'re done.<BR/>';
+      main_form_html = main_form_html + 'Remember to connect to your new Wireless Network: <b>' +  g_network_ssid + '</b> ';
       main_form_html = main_form_html + ' \
             </legend>	\
           </div>	\
@@ -501,14 +506,20 @@
 	.done(function( json_response ) {		
 		
 	  alert("Restarting Router.  Please wait 30 seconds");//need a better message or a waiting javascript
+	  $("#statusText").show().html("Restarting Reouter");
+	  var opts = { 
+	    lines: 15
+	  };
+	  var target = document.getElementById('statusText');
+	  var spinner = new Spinner().spin(target);
+	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Reboot Error");
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      $("#statusText").show().html("Reboot Error");
+	      var json_result = $.parseJSON(xhr.responseText);
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	      
 	});               
   }
   
@@ -573,12 +584,11 @@
 		
 	      })
 	      .error(function (xhr, ajaxOptions, thrownError) {
+		    var json_result = $.parseJSON(xhr.responseText);	      
 		    $("#statusText").html("Network Settings Error");    
-		    switch(xhr.status)
-		    {
-		      case 403: alert("Invalid Product Key"); break;
-		      default: alert(xhr.status); break;
-		    }
+		    for(var i = 0; i < json_result.errors.length; i++)
+		    {	alert(json_result.errors[i]);		
+		    }	
 	      });          	
 	}
 	else
@@ -608,11 +618,10 @@
 		
 	      })
 	      .error(function (xhr, ajaxOptions, thrownError) {
-		    $("#statusText").html("Network Settings Error");    
-		    switch(xhr.status)
-		    {
-		      case 403: alert("Invalid Product Key"); break;
-		      default: alert(xhr.status); break;
+		    var json_result = $.parseJSON(xhr.responseText);	      
+		    $("#statusText").html("Who Is On My Wifi Login Error");    
+		    for(var i = 0; i < json_result.errors.length; i++)
+		    {	alert(json_result.errors[i]);		
 		    }
 	      });          	
 	}
@@ -623,7 +632,7 @@
 	
 	if(!g_internet_connected)
 	{
-	  detect_internet_connection();
+	  detect_internet_connection();//remove
 	}
   }
   
@@ -679,12 +688,11 @@
 	  mm_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Wireless Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	
 	});                   
   }
 
@@ -737,12 +745,11 @@
 	  alert("Router Restarting" + json_response);
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Reboot Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
 	});               
   }
   
@@ -807,12 +814,11 @@
 	  mm_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Wireless Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
 	});                   
   }  
   
@@ -893,12 +899,11 @@
 	  mm_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); mm_reboot_gui(); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Who Is On My Wifi Login Error");
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	
 	});   
   }
   
@@ -952,22 +957,21 @@
 	  {
 	    alert("No Updates Available at this time");
 	  }
-	  if(json_response.update = "available")
+	  if(json_response.update == "available")
 	  {
 	    alert("Update is available but is not able to be downloaded");
 	  }
-	  if(json_response.update = "ready")
+	  if(json_response.update == "ready")
 	  {
 	    alert("Update is available and downloaded to your router");
 	  }
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").html("Network Settings Error");    
-	      switch(xhr.status)
-	      {
-		case 403: alert("Invalid Product Key"); break;
-		default: alert(xhr.status); break;
-	      }
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Update Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	
 	});                   
   }    
   
