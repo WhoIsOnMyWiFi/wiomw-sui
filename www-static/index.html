@@ -113,7 +113,7 @@
 		g_psalt = json_response.psalt;
 		g_phash = json_response.phash;	
 		
-		/*
+		
 		if(json_response.setup_required)
 		{
 		  setup_detect_internet_gui();
@@ -122,8 +122,8 @@
 		{
 		  mainmenu_gui();//go to the main menu
 		}
-		*/
-		setup_detect_internet_gui();
+		
+		//setup_detect_internet_gui();
 		
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -487,7 +487,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <span class="instructionText">NOTE: This setup wizard is now complete.  It may take your wireless router 30 seconds to restart</span>	\
+            <span class="instructionText">NOTE: This setup wizard is now complete.  The router will take 60 seconds to restart</span>	\
           </div>	\
         </div>';
 	$("#form_main").html(main_form_html);	
@@ -505,16 +505,7 @@
     $.post("cgi-bin/sui.cgi?reboot", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("Restarting Router.  Please wait 30 seconds");//need a better message or a waiting javascript
-	  $("#form_main").html('');
-	  $("#statusText").show().html("Restarting Router.<br/><br/>You will be redirected to the login screen in 30 seconds.");
-	  var opts = { 
-	    lines: 12,
-	    color: '#fff'
-	  };
-	  var target = document.getElementById('statusText');
-	  var spinner = new Spinner(opts).spin(target);
-	  setTimeout(function() { location.href='http://myrouter.lan'; }, 30000);
+	    setup_restart_gui();
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -526,6 +517,50 @@
 	});               
   }
   
+  function setup_restart_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "Connect to Wireless Network: <b>" + g_network_ssid + "</b>";
+	main_html = main_html + '<br/>And You Are Setup!	\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+	    To Make Additional Changes to your Router, Go to <a href="http://myrouter.lan">http://myrouter.lan</a><br/> \
+	    To Manage Devices on your network, Go to <a href="http://www.whoisonmywifi.net">http://www.whoisonmywifi.net</a> <br/> \
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);      
+      
+  }    
   
   
   //************************************
@@ -1014,6 +1049,12 @@
 		<span id="statusText"></span>
 	    </div>
 	  </div>		  	  
+
+	  <div class="row">
+	    <div class="twelve columns" id="spinner_div" style="position: relative;">
+		
+	    </div>
+	  </div>	  
 	  
 	    
     </div>
