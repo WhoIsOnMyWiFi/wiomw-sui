@@ -22,13 +22,15 @@
 #define LATEST_JSON_URL BASE_URL "latest.json"
 #define CA_FILE "/etc/ssl/certs/f081611a.0"
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
+#define OUTPUT_FILE "/tmp/sysupgrade.log"
 #define REBOOT_DELAY "15"
+#define POLL_DELAY "15"
 #define JSON_ERROR_BUFFER_LEN 1024
 #define MINIMUM_EXTRA_MEMORY 2097152
 
 #define FREE_COMMAND "free | awk '$1 == \"Mem:\" {print $4;}'"
 #define MD5_COMMAND "md5sum " UPGRADE_FILE
-#define SYSUPGRADE_COMMAND "sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " ; echo $?"
+#define SYSUPGRADE_COMMAND "sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " >> " OUTPUT_FILE " 2>> " OUTPUT_FILE " || echo 1 &  sleep " POLL_DELAY " && echo 0 & "
 
 struct data_holder {
 	size_t offset;

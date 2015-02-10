@@ -45,7 +45,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			*netmask = 0;
 			pclose(output);
 			return false;
-		} else if (fgets(tstr, BUFSIZ, output) != 0) {
+		} else if (fgets(tstr, BUFSIZ, output) == NULL) {
 			*base = 0;
 			*netmask = 0;
 			pclose(output);
