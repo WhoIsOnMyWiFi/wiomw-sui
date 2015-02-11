@@ -672,12 +672,17 @@
     $('<script>').attr({
 	src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
 	type: 'text/javascript'}).appendTo('body');    
-    alert("Internet is connected");
   }
   function mm_internet_is_down() 
   {
     g_internet_connected = false;
-    alert("Internet is disconnected");
+    $("#form_usermsg").html(' \
+    <div class="error-message">	\
+      <div class="container">	\
+	<h2 id="h2_error">Internet is Not Connected</h2>	\
+      </div>	\
+    </div>     \
+    ');          
   }  
   
   
@@ -920,30 +925,52 @@
   
   function mm_wiomw_gui()
   {
-      $("#form_main").html(' \
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <legend>	\
-              Edit Who\'s On My Wifi Online Login \
-            </legend>	\
-          </div>	\
-        </div>	 \
-        <div class="row">	        \
-          <div class="one-third column">	\
-	    <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
-            <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
-          </div>	\
-          <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Save Login" />	\
-          </div>	\
-        </div>	\
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-            <br/><span class="instructionText">Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
-          </div>	\
-        </div>	  \
-	');        
+    if(g_internet_connected)
+    {
+
+	$("#form_main").html(' \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <legend>	\
+		Edit Who\'s On My Wifi Online Login \
+	      </legend>	\
+	    </div>	\
+	  </div>	 \
+	  <div class="row">	        \
+	    <div class="one-third column">	\
+	      <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
+	      <input placeholder="Enter Password Here" type="text" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
+	    </div>	\
+	    <div class="two-thirds column">	\
+	      <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Save Login" />	\
+	    </div>	\
+	  </div>	\
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+	      <br/><span class="instructionText">Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
+	    </div>	\
+	  </div>	  \
+	  ');        
+    }
+    else
+    {
+	$("#form_main").html(' \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <legend>	\
+		Edit Who\'s On My Wifi Online Login \
+	      </legend>	\
+	    </div>	\
+	  </div>	 \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+	      <br/><span class="instructionText">Note: Who\'s On My Wifi Online Login Changes can not be made while the internet is disconnected.</span>	\
+	    </div>	\
+	  </div>	  \
+	  ');            
+    }
   }
   
   function mm_wiomw_action()
