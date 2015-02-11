@@ -1046,9 +1046,20 @@
 	    <input type="button" class="button-primary u-float-left" onClick="advmm_routerupdate_action();" value="Check for Router Updates" />	\
           </div>	\
         </div>	\
+        <div class="row">	        \
+          <div class="sixteen columns">	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_wan_gui();" value="Manually Edit WAN IP Settings" />	\
+          </div>	\
+        </div>	\
+        </div>	\
+        <div class="row">	        \
+          <div class="sixteen columns">	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_lan_gui();" value="Manually Edit LAN IP Settings" />	\
+          </div>	\
+        </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Go Back" />	\
             <br/><span class="instructionText">Please Note:  Updating to the latest firmware will require a reboot on the router.</span>	\
           </div>	\
         </div>	  \
@@ -1094,6 +1105,117 @@
 	      {	alert(json_result.errors[i]);		
 	      }	
 	});                   
+  }    
+  
+  
+  function advmm_wan_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Manually Edit your WAN Settings \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <br/>WAN DHCP <input placeholder="" type="text" class="u-full-width" id="wan_dhcp" name="wan_dhcp"> \
+	    <br/>WAN IP <input placeholder="" type="text" class="u-full-width" id="wan_ip" name="wan_ip"> \
+	    <br/>WAN Netmask <input placeholder="" type="text" class="u-full-width" id="wan_netmask" name="wan_netmask"> \
+	    <br/>WAN Gateway <input placeholder="" type="text" class="u-full-width" id="wan_gateway" name="wan_gateway"> \
+	    <br/>WAN DNS <input placeholder="" type="text" class="u-full-width" id="wan_dns" name="wan_dns"> \
+	  </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_wan_action();" value="Save WAN Settings" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Changes to the WAN Settings will require a Router Restart. \
+            Please only make changes if you are sure they are the correct WAN Settings.  Otherwise, using the default DHCP option is the recommended.\
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+      
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      
+    $.post("cgi-bin/sui.cgi?wan_ip", json_data)
+	.done(function( json_response ) {		
+		alert(json_response.dhcp);
+	  
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").show().html("Manual WAN Network Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
+	});          
+      
+  }      
+
+  function advmm_lan_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Manually Edit your LAN Settings \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    <br/>LAN IP <input placeholder="" type="text" class="u-full-width" id="lan_ip" name="lan_ip"> \
+	    <br/>LAN Netmask <input placeholder="" type="text" class="u-full-width" id="lan_netmask" name="lan_netmask"> \
+	  </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_wanlan_action();" value="Save LAN/WAN Settings" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Changes to the LAN Settings will require a Router Restart. \
+            Please only make changes if you want to override the default LAN Settings provided.\
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+      
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      
+    $.post("cgi-bin/sui.cgi?lan_ip", json_data)
+	.done(function( json_response ) {
+		$("#lan_ip").val(json_response.ip);
+		$("#lan_netmask").val(json_response.netmask);	  
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").show().html("Manual LAN Network Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
+	});     	
+      
+      
   }    
   
   
