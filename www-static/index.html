@@ -1177,16 +1177,16 @@
         </div>	 \
         <div class="row">	        \
           <div class="one-third column">	\
-	    <br/>LAN IP <input placeholder="" type="text" class="u-full-width" id="lan_ip" name="lan_ip"> \
-	    <br/>LAN Netmask <input placeholder="" type="text" class="u-full-width" id="lan_netmask" name="lan_netmask"> \
+	    LAN IP<input placeholder="LAN IP" type="text" class="u-full-width" id="lan_ip" name="lan_ip"> \
+	    <br/>LAN Netmask<input placeholder="LAN Netmask" type="text" class="u-full-width" id="lan_netmask" name="lan_netmask"> \
 	  </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="advmm_wanlan_action();" value="Save LAN/WAN Settings" />	\
-          </div>	\
+	  </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_lan_action();" value="Save LAN Settings" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
             <br/><span class="instructionText">NOTE: Changes to the LAN Settings will require a Router Restart. \
             Please only make changes if you want to override the default LAN Settings provided.\
 	    </span>	\
@@ -1213,10 +1213,36 @@
 	      for(var i = 0; i < json_result.errors.length; i++)
 	      {	alert(json_result.errors[i]);		
 	      }		
-	});     	
-      
-      
+	});     	          
   }    
+  
+  function advmm_lan_action()
+  {
+      var new_lan_ip = $("#lan_ip").val();
+      var new_lan_netmask = $("#lan_netmask").val();
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "ip": new_lan_ip,
+	      "netmask": new_lan_netmask
+      };
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?lan_ip", json_data)
+	.done(function( json_response ) {
+	    mm_reboot_action();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").show().html("Manual LAN Network Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
+	});       
+  
+  }
   
   
   $(document).ready(function() {
