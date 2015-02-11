@@ -13,25 +13,46 @@
   
   //handle global login variables
   //these variables are passed with every json call
-  var g_psalt = "";
-  var g_phash = "";
+  var g_psalt;
+  var g_phash;
   
   //other global multi-page variables
-  var g_network_ssid = "";
-  var g_network_psk = "";
+  var g_network_ssid;
+  var g_network_psk;
   
-  var g_internet_connected = false;
-  var g_wiomw_username = "";
-  var g_wiomw_password = "";
-  var g_wiomw_agentkey = "";
-  var g_wiomw_pubtoken = "";
-  var g_wiomw_privtoken = "";
+  var g_internet_connected;
+  var g_wiomw_username;
+  var g_wiomw_password;
+  var g_wiomw_agentkey;
+  var g_wiomw_pubtoken;
+  var g_wiomw_privtoken;
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
   //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
   //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
 
+  //************************************
+  //Reset Defaults after login/logout
+  //************************************
+  function reset_defaults()
+  {
+
+    g_psalt = "";
+    g_phash = "";
+  
+    //other global multi-page variables
+    g_network_ssid = "";
+    g_network_psk = "";
+    
+    g_internet_connected = false;
+    g_wiomw_username = "";
+    g_wiomw_password = "";
+    g_wiomw_agentkey = "";
+    g_wiomw_pubtoken = "";
+    g_wiomw_privtoken = "";    
+  }
+  
   //************************************
   //Detect if the internet is connected
   //************************************
@@ -46,27 +67,7 @@
     // escape(Date()) is necessary to override possibility of image coming from cache    
     
   }  
-  /*
-  function detect_internet_connection()
-  {
-    //standard method
-    var result = false;
-    if(navigator.onLine)
-    {
-      g_internet_connected = true;
-      result = true;
-      //alert("Internet is connected");
-      $('<script>').attr({
-	  src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
-	  type: 'text/javascript'}).appendTo('body');        
-    }
-    else
-    {
-      //handle the false result in the specific gui page
-    }
-    return result;
-  }
-  */
+
   //************************************
   //*Handle Login Page
   //************************************
@@ -97,6 +98,7 @@
       </div> \
       ');
       history.pushState('Login','Login','');
+      reset_defaults();
   }
   
   function login_action()
@@ -183,19 +185,7 @@
   function setup_detect_internet_action()
   {
   
-    detect_internet_connection_with_callbacks(setup_internet_is_connected, setup_internet_is_down);
-    
-    /*
-    var internet_is_connected = detect_internet_connection();
-    if(internet_is_connected)
-    {
-      setup_ssid_gui();
-    }
-    else
-    {
-      setup_internet_error_gui();
-    }  
-    */
+    detect_internet_connection_with_callbacks(setup_internet_is_connected, setup_internet_is_down);    
   }
   
   function setup_internet_is_connected() 
@@ -596,6 +586,7 @@
 	 <ul>	\
 	    <li><a onClick="mm_wiomw_gui();" >Who Is On My Wifi Online Settings</a></li>	\
 	    <li><a onClick="mm_advancedmenu_gui();" >Advanced Menu</a></li>	\
+	    <li><a onClick="mm_reboot_action();" >Restart Router</a></li>	\
 	    <li><a onClick="mm_logout();" >Logout</a></li>	\
 	  </ul>	\
 	  </div>';
@@ -670,9 +661,25 @@
 	
 	if(!g_internet_connected)
 	{
-	  detect_internet_connection();//remove
+	  detect_internet_connection_with_callbacks(mm_internet_is_connected, mm_internet_is_down);	
 	}
   }
+  
+  function mm_internet_is_connected() 
+  {
+    //if the internet is connected, add the wiomw remote client functions
+    g_internet_connected = true;
+    $('<script>').attr({
+	src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	type: 'text/javascript'}).appendTo('body');    
+    alert("Internet is connected");
+  }
+  function mm_internet_is_down() 
+  {
+    g_internet_connected = false;
+    alert("Internet is disconnected");
+  }  
+  
   
   function mm_psk_gui()
   {
@@ -718,7 +725,7 @@
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
@@ -742,12 +749,13 @@
 	</div>  \
       ');  
   
-      $("#form_main").html(' \
+      var main_form_html = '\
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              To keep your router changes, please reboot your Router.	\
-              Remember to connect your new Wireless Credentials \
+              To keep your router changes, please reboot your Router.';
+      main_form_html = main_form_html + 'Remember to connect using your new Wireless Credentials: <b>' +  g_network_ssid + '</b> ';
+      main_form_html = main_form_html + ' \
             </legend>	\
           </div>	\
         </div>	 \
@@ -762,8 +770,8 @@
           <div class="twelve columns">	\
             <span class="instructionText"></span>	\
           </div>	\
-        </div>	  \
-	');
+        </div>';
+      $("#form_main").html(main_form_html);
   
   }  
   
@@ -775,12 +783,13 @@
       };      
       
       var json_data = $.toJSON(reboot_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?reboot", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("Router Restarting" + json_response);
+	  //alert("Router Restarting" + json_response);
+	  mm_restart_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
 	      var json_result = $.parseJSON(xhr.responseText);	      
@@ -790,6 +799,53 @@
 	      }		
 	});               
   }
+  
+  function mm_restart_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "Wireless Network: <b>" + g_network_ssid + "</b>";
+	main_html = main_html + '\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+	    Manage Router: <a href="http://myrouter.lan">http://myrouter.lan</a><br/> \
+	    Manage Devices: <a href="http://www.whoisonmywifi.net">http://www.whoisonmywifi.net</a> <br/> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);      
+      
+  }    
+  
+  
   
   function mm_logout()
   {
@@ -844,7 +900,7 @@
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wifi", json_data)
 	.done(function( json_response ) {		
