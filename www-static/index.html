@@ -1059,7 +1059,7 @@
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Go Back" />	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Main Menu" />	\
             <br/><span class="instructionText">Please Note:  Updating to the latest firmware will require a reboot on the router.</span>	\
           </div>	\
         </div>	  \
@@ -1121,19 +1121,22 @@
         </div>	 \
         <div class="row">	        \
           <div class="one-third column">	\
-	    <br/>WAN DHCP <input placeholder="" type="text" class="u-full-width" id="wan_dhcp" name="wan_dhcp"> \
+	         WAN DHCP <select name="wan_dhcp" id="wan_dhcp" class="u-full-width"> \
+			    <option value="true" selected>Use DHCP</option> \
+			    <option value="false">Set Manually</option> \
+			  </select> \
 	    <br/>WAN IP <input placeholder="" type="text" class="u-full-width" id="wan_ip" name="wan_ip"> \
 	    <br/>WAN Netmask <input placeholder="" type="text" class="u-full-width" id="wan_netmask" name="wan_netmask"> \
 	    <br/>WAN Gateway <input placeholder="" type="text" class="u-full-width" id="wan_gateway" name="wan_gateway"> \
 	    <br/>WAN DNS <input placeholder="" type="text" class="u-full-width" id="wan_dns" name="wan_dns"> \
 	  </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="advmm_wan_action();" value="Save WAN Settings" />	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_wan_action();" value="Save WAN Settings" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
             <br/><span class="instructionText">NOTE: Changes to the WAN Settings will require a Router Restart. \
             Please only make changes if you are sure they are the correct WAN Settings.  Otherwise, using the default DHCP option is the recommended.\
 	    </span>	\
@@ -1164,6 +1167,49 @@
       
   }      
 
+  function advmm_wan_action()
+  {
+      var new_wan_dhcp = $("#wan_dhcp").val();
+      var new_wan_ip = $("#wan_ip").val();
+      var new_wan_netmask = $("#wan_netmask").val();
+      var new_wan_gateway = $("#wan_gateway").val();
+      var new_wan_dns = $("#wan_dns").val();  
+      if(new_wan_dhcp == "true")
+      {	//if using dhcp, just drop the other values
+	new_wan_ip = "";
+	new_wan_netmask = "";
+	new_wan_gateway = "";
+	new_wan_dns = "";
+      }
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "dhcp": new_wan_dhcp,	      
+	      "ip": new_wan_ip,
+	      "netmask": new_wan_netmask,
+	      "gateway": new_wan_gateway,
+	      "dns": new_wan_dns
+      };
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?wan_ip", json_data)
+	.done(function( json_response ) {
+	    mm_reboot_action();
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").show().html("Manual WAN Network Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
+	});       
+  
+  }
+  
+  
+  
   function advmm_lan_gui()
   {
        
