@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Who's On My WiFi ®</title>
+  <title>Who's On My WiFi ® Router</title>
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
@@ -26,6 +26,11 @@
   var g_wiomw_agentkey;
   var g_wiomw_pubtoken;
   var g_wiomw_privtoken;
+  
+  //firmware update specific variables
+  var g_firmware_md5;
+  var g_firmware_version;
+  var g_firmware_size;
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
@@ -759,8 +764,8 @@
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>	\
-              To keep your router changes, please reboot your Router.';
-      main_form_html = main_form_html + 'Remember to connect using your new Wireless Credentials: <b>' +  g_network_ssid + '</b> ';
+              To save your changes, please reboot your Router.<br/>';
+      main_form_html = main_form_html + 'Remember to connect using the Wireless Credentials: <b>' +  g_network_ssid + '</b> ';
       main_form_html = main_form_html + ' \
             </legend>	\
           </div>	\
@@ -993,7 +998,7 @@
   
   function mm_bad_wiomw_creds(errorString)
   {
-    alert("Invalid Login" + errorString);
+    alert(errorString);
   }
   
   function mm_save_and_apply_credentials(publictoken, privatetoken, agentkey)
@@ -1010,14 +1015,14 @@
       };                  
       
       var json_data = $.toJSON(wiomw_creds);
-      alert(json_data);  
-      alert("Saving Data to router");
+      //alert(json_data);  
+      //alert("Saving Data to router");
       //$("#statusText").html(json_data);
      
     $.post("cgi-bin/sui.cgi?wiomw", json_data)
 	.done(function( json_response ) {		
 		
-	  alert("WIOMW values saved" + json_response);
+	  //alert("WIOMW values saved" + json_response);
 	  mm_reboot_gui();
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -1030,8 +1035,6 @@
   }
   
   
-  
-
   function mm_advancedmenu_gui()
   {  
       $("#form_main").html(' \
@@ -1052,7 +1055,7 @@
 	 </table> \
 	 <div class="mm_link">	\
 	 <ul>	\
-	    <li><a onClick="advmm_routerupdate_action();" >Check for Router Updates</a></li>	\
+	    <li><a onClick="advmm_install_update_gui();" >Router Updates</a></li>	\
 	    <li><a onClick="mainmenu_gui();" >Main Menu</a></li>	\
 	    <li><a onClick="mm_logout();" >Logout</a></li>	\
 	  </ul>	\
@@ -1065,16 +1068,45 @@
 	');        
   }  
   
+  function advmm_install_update_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Install Router Firmware Update \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_routerupdate_action();" value="Check for Update" />	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_install_update_action();" value="Update Router" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Updating to the latest Router Firmware is always recommend.  Firmware update will require a Router Restart. \
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';  
+        $("#form_main").html(form_main_html);
+  }
+  
   function advmm_routerupdate_action()
   {
-      
+      //this might need to be inside of it's own separate gui...
       var network_creds = {
 	      "psalt": g_psalt,
 	      "phash": g_phash
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
       
     $.post("cgi-bin/sui.cgi?update", json_data)
 	.done(function( json_response ) {		
@@ -1094,7 +1126,12 @@
 	  }
 	  if(json_response.update == "ready")
 	  {
-	    alert("Update is available and downloaded to your router");
+	    alert("Update is available and being downloaded to your router");
+	    g_firmware_md5 = json_response.md5;
+	    g_firmware_size = json_response.size;
+	    g_firmware_version = json_response.version;
+	    alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
+	    advmm_install_update_gui();
 	  }
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -1106,6 +1143,36 @@
 	});                   
   }    
   
+  
+  
+  function advmm_install_update_action()
+  {
+  
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+	      "md5": g_firmware_md5,
+	      "size": g_firmware_size,
+	      "version": g_firmware_version
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      alert(json_data);
+      
+    $.post("cgi-bin/sui.cgi?update", json_data)
+	.done(function( json_response ) {		
+	  //Right now, unfortunately, the browser appears to hang, but the update is happening
+	  //maybe don't have a done function, or just alternatively, also set a timeout to do something else...
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").html("Update Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }	
+	});                     
+  
+  }
   
   function advmm_wan_gui()
   {
