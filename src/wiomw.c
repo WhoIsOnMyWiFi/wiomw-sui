@@ -1,5 +1,4 @@
 #include <config.h>
-#include "wiomw_uci.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -115,7 +114,7 @@ void post_wiomw(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, AGENTKEY_UCI_PATH "=%s", agentkey);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save agentkey to UCI.\"]}");
@@ -126,7 +125,7 @@ void post_wiomw(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, PUBTOKEN_UCI_PATH "=%s", pubtoken);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save pubtoken to UCI.\"]}");
@@ -137,7 +136,7 @@ void post_wiomw(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, PRIVTOKEN_UCI_PATH "=%s", privtoken);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save privtoken to UCI.\"]}");

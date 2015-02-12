@@ -126,7 +126,7 @@ void post_lan_ip(yajl_val top)
 			struct in_addr temp;
 			if (tstr[0] == '\0'
 					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
-					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"The LAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
@@ -147,7 +147,7 @@ void post_lan_ip(yajl_val top)
 			struct in_addr temp;
 			if (tstr[0] == '\0'
 					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
-					|| (res = inet_pton(AF_INET, tstr, &temp) == 0)) {
+					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"The LAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}");
@@ -173,7 +173,7 @@ void post_lan_ip(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, IPADDR_UCI_PATH "=%s", ipaddr);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save LAN IP address to UCI.\"]}");
@@ -184,7 +184,7 @@ void post_lan_ip(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, NETMASK_UCI_PATH "=%s", netmask);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save LAN netmask to UCI.\"]}");
