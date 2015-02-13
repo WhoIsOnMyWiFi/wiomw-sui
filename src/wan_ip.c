@@ -24,6 +24,9 @@
 #define GET_GATEWAY_COMMAND "netstat -nr | awk '$1 == \"0.0.0.0\" {print $2;}'"
 #define GET_DNS_COMMAND "cat /var/resolv.conf.auto | awk '$1 == \"nameserver\" {print $2;}'"
 
+/*
+ * returns true if successful
+ * */
 bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 {
 	struct uci_context* ctx;
@@ -82,7 +85,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		}
 
 		pclose(output);
-		return false;
+		return true;
 	} else if (strncmp(ptr.o->v.string, "static", 7) == 0) {
 		snprintf(tstr, BUFSIZ, "%s", IPADDR_UCI_PATH);
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK

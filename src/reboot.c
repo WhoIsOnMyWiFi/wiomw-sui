@@ -16,7 +16,7 @@ void post_reboot()
 	uint32_t lan_ip = 0;
 	uint32_t lan_netmask = 0;
 
-	if (!get_lan_ip4(&lan_ip, &lan_netmask) && lan_ip != 0 && lan_netmask != 0) {
+	if (get_lan_ip4(&lan_ip, &lan_netmask) && lan_ip != 0 && lan_netmask != 0) {
 		uint32_t wan_ip = 0;
 		uint32_t wan_netmask = 0;
 

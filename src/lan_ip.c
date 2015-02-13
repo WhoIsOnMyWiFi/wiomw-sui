@@ -57,9 +57,12 @@ bool set_lan_ip4(const char* base, const char* netmask)
 	return true;
 }
 
+/*
+ * returns true if successful and LAN has never been changed
+ */
 bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 {
-	bool changed = false;
+	bool never_changed = false;
 	struct uci_context* ctx;
 	struct uci_ptr ptr;
 	int res = 0;
@@ -72,7 +75,7 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 		*netmask = 0;
 		return false;
 	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-		changed = (atoi(ptr.o->v.string) == 1);
+		never_changed = (atoi(ptr.o->v.string) != 1);
 	}
 
 	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
@@ -99,7 +102,7 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 		return false;
 	}
 
-	return changed;
+	return never_changed;
 }
 
 void post_lan_ip(yajl_val top)
