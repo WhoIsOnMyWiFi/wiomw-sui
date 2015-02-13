@@ -16,13 +16,15 @@
 #include <uci.h>
 #include <polarssl/md5.h>
 
+#include "version.h"
+
 #define SUI_MODEL_PATH "sui.system.model"
 
 #define BASE_URL "https://www.whoisonmywifi.net/hw/"
 #define LATEST_JSON_URL BASE_URL "latest.json"
 #define CA_FILE "/etc/ssl/certs/f081611a.0"
 #define UPGRADE_FILE "/tmp/sysupgrade.bin"
-#define OUTPUT_FILE "/tmp/sysupgrade.log"
+#define UPGRADE_LOG_FILE "/tmp/sysupgrade.log"
 #define REBOOT_DELAY "30"
 #define POLL_DELAY "45"
 #define JSON_ERROR_BUFFER_LEN 1024
@@ -30,71 +32,12 @@
 
 #define FREE_COMMAND "free | awk '$1 == \"Mem:\" {print $4;}'"
 #define MD5_COMMAND "md5sum " UPGRADE_FILE
-#define SYSUPGRADE_COMMAND "sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " >> " OUTPUT_FILE " 2>> " OUTPUT_FILE " || echo 1 &  sleep " POLL_DELAY " && echo 0 & "
+#define SYSUPGRADE_COMMAND "sleep 3 && sysupgrade -v -d " REBOOT_DELAY " " UPGRADE_FILE " >> " UPGRADE_LOG_FILE " 2>> " UPGRADE_LOG_FILE " & "
 
 struct data_holder {
 	size_t offset;
 	char data[];
 };
-
-int version_compare(char* new)
-{
-	if (strcmp(VERSION "-r" RELEASE_NUMBER, new) == 0) {
-		return 0;
-	} else {
-		/* TODO: Version compare instead of just version validity */
-		unsigned short state = 0;
-		size_t i = 0;
-		for (i = 0; new[i] != '\0'; i++) {
-			switch (state) {
-			case 0:
-				if (isdigit(new[i])) {
-					state = 1;
-				} else {
-					return -1;
-				}
-				break;
-			case 1:
-				if (new[i] == '.') {
-					state = 2;
-				} else if (new[i] == '-') {
-					state = 3;
-				} else if (isdigit(new[i])) {
-					state = 1;
-				} else {
-					return -1;
-				}
-				break;
-			case 2:
-				if (isdigit(new[i])) {
-					state = 1;
-				} else {
-					return -1;
-				}
-				break;
-			case 3:
-				if (new[i] == 'r') {
-					state = 4;
-				} else {
-					return -1;
-				}
-				break;
-			case 4:
-				if (isdigit(new[i])) {
-					state = 4;
-				} else {
-					return -1;
-				}
-				break;
-			}
-		}
-		if (state == 1 || state == 4) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
-}
 
 static size_t latest_json_cb(void* buffer, size_t size, size_t nmemb, void* raw_holder)
 {
@@ -382,16 +325,6 @@ void post_update(yajl_val api_yajl)
 				syslog(LOG_ERR, "Unable to popen the sysupgrade command: %s", strerror(my_errno));
 				free(holder);
 				return;
-			} else if (fgetc(command_output) != '0') {
-				/* got non-zero return code from sysupgrade */
-				printf("Status: 500 Internal Server Error\n");
-				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Error while performing the upgrade.\"],");
-				printf("\"version\":\"%s\",\"size\":%lld,\"md5\":\"%s\",\"update\":\"ready\"}", YAJL_GET_STRING(latest_version_yajl), YAJL_GET_INTEGER(latest_size_yajl), YAJL_GET_STRING(latest_md5_yajl));
-				syslog(LOG_ERR, "The sysupgrade command failed.");
-				free(holder);
-				pclose(command_output);
-				return;
 			} else {
 				/* upgrade complete */
 				printf("Status: 200 OK\n");
@@ -520,6 +453,27 @@ void post_update(yajl_val api_yajl)
 		printf("Content-type: application/json\n\n");
 		printf("{\"update\":\"none\"}");
 		free(holder);
+		return;
+	}
+}
+
+void post_update_log(yajl_val api_yajl)
+{
+	FILE* update_log = fopen(UPGRADE_LOG_FILE, "r");
+	if (update_log == NULL) {
+		printf("Status: 404 Not Found\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"There is currently no update.log.\"]}");
+		return;
+	} else {
+		char buf[BUFSIZ];
+		printf("Status: 200 OK\n");
+		printf("Content-Type: text/plain\n");
+		printf("Content-Disposition: attachment; filename=update.log\n\n");
+		while (fread(buf, 1, BUFSIZ, update_log) != 0) {
+			fwrite(buf, 1, BUFSIZ, stdout);
+		}
+		fclose(update_log);
 		return;
 	}
 }

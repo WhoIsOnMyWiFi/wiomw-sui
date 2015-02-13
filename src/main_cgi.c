@@ -23,6 +23,7 @@
 #include "wan_ip.h"
 #include "lan_ip.h"
 #include "update.h"
+#include "version.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -59,6 +60,10 @@ int main()
 				printf("{\"errors\":[\"Query required in URL.\"]}");
 			} else if (strcmp(query, "password") == 0) {
 				post_password(top);
+			} else if (strcmp(query, "version") == 0) {
+				if (valid_creds(top)) {
+					post_version(top);
+				}
 			} else if (strcmp(query, "wifi") == 0) {
 				if (valid_creds(top)) {
 					post_wifi(top);
@@ -78,6 +83,10 @@ int main()
 			} else if (strcmp(query, "lan_ip") == 0) {
 				if (valid_creds(top)) {
 					post_lan_ip(top);
+				}
+			} else if (strcmp(query, "update.log") == 0) {
+				if (valid_creds(top)) {
+					post_update(top);
 				}
 			} else if (strcmp(query, "update") == 0) {
 				if (valid_creds(top)) {

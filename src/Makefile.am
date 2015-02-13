@@ -9,6 +9,7 @@ sui_cgi_SOURCES = main_cgi.c \
 		  wan_ip.h wan_ip.c \
 		  lan_ip.h lan_ip.c \
 		  update.h update.c \
-		  range_check.h range_check.c
+		  range_check.h range_check.c \
+		  version.h version.c
 AM_CFLAGS=${CURL_CFLAGS}
 sui_cgi_LDADD=${CURL_LIBS}
