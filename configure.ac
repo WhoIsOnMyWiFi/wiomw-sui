@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([openwrt-sui], [0.2.20], [bugs@whoisonmywifi.com])
-AC_CONFIG_SRCDIR([src/wifi_cgi.c])
+AC_INIT([openwrt-sui], [0.2.21], [bugs@whoisonmywifi.com])
+AC_CONFIG_SRCDIR([src/main_cgi.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
