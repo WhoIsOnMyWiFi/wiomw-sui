@@ -467,11 +467,12 @@ void post_update_log(yajl_val api_yajl)
 		return;
 	} else {
 		char buf[BUFSIZ];
+		size_t rsize = 0;
 		printf("Status: 200 OK\n");
 		printf("Content-Type: text/plain\n");
 		printf("Content-Disposition: attachment; filename=update.log\n\n");
-		while (fread(buf, 1, BUFSIZ, update_log) != 0) {
-			fwrite(buf, 1, BUFSIZ, stdout);
+		while ((rsize = fread(buf, 1, BUFSIZ, update_log)) != 0) {
+			fwrite(buf, 1, rsize, stdout);
 		}
 		fclose(update_log);
 		return;
