@@ -62,7 +62,7 @@ bool set_lan_ip4(const char* base, const char* netmask)
  */
 bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 {
-	bool never_changed = false;
+	bool never_changed = true;
 	struct uci_context* ctx;
 	struct uci_ptr ptr;
 	int res = 0;
