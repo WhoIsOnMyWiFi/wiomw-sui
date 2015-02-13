@@ -86,7 +86,7 @@ int main()
 				}
 			} else if (strcmp(query, "update.log") == 0) {
 				if (valid_creds(top)) {
-					post_update(top);
+					post_update_log(top);
 				}
 			} else if (strcmp(query, "update") == 0) {
 				if (valid_creds(top)) {
