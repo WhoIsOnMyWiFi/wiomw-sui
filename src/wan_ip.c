@@ -64,8 +64,8 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 				*netmask = 0;
 				pclose(output);
 				return false;
-			} else if (delim[len] == '\n') {
-				delim[len] = '\0';
+			} else if (delim[len-1] == '\n') {
+				delim[len-1] = '\0';
 			}
 			*delim = '\0';
 			if (inet_pton(AF_INET, tstr, base) == 0) {
@@ -387,8 +387,8 @@ void post_wan_ip(yajl_val top)
 				printf("{\"errors\":[\"Unable to get DHCP IPv4 address annd netmask for WAN.\"]}");
 				pclose(output);
 				return;
-			} else if (delim[len] == '\n') {
-				delim[len] = '\0';
+			} else if (delim[len-1] == '\n') {
+				delim[len-1] = '\0';
 			}
 			*delim = '\0';
 			strncpy(ipaddr, tstr, BUFSIZ);
@@ -412,8 +412,8 @@ void post_wan_ip(yajl_val top)
 			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway address for WAN.\"]}");
 			pclose(output);
 			return;
-		} else if (gateway[len] == '\n') {
-			gateway[len] = '\0';
+		} else if (gateway[len-1] == '\n') {
+			gateway[len-1] = '\0';
 		}
 
 		char* tdns = dns;
@@ -431,8 +431,8 @@ void post_wan_ip(yajl_val top)
 				printf("{\"errors\":[\"Unable to get DNS address for WAN.\"]}");
 				pclose(output);
 				return;
-			} else if (tstr[len] == '\n') {
-				tstr[len] = '\0';
+			} else if (tstr[len-1] == '\n') {
+				tstr[len-1] = '\0';
 			}
 			astpnprintf(&tdns, &dnslen, ",\"%s\"", tstr);
 		}
