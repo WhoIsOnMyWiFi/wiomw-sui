@@ -21,6 +21,8 @@
 #define MAX_IP_LENGTH 32
 
 #define GET_WAN_COMMAND "ifconfig -a | awk '$1 == \"'`uci get network.wan.ifname`'\" {getline; if ($1 == \"inet\") {raddr = $2; split(raddr, saddr, \":\"); rmask = $4; split(rmask, smask, \":\"); print saddr[2] \" \" smask[2];}}'"
+#define GET_GATEWAY_COMMAND "netstat -nr | awk '$1 == \"0.0.0.0\" {print $2;}'"
+#define GET_DNS_COMMAND "cat /var/resolv.conf.auto | awk '$1 == \"nameserver\" {print $2;}'"
 
 bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 {
@@ -57,16 +59,21 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			return false;
 		} else {
 			size_t len = 0;
-			if ((len = strnlen(delim, BUFSIZ)) < BUFSIZ && delim[len] == '\n') {
-				delim[len] = '\0';
-			}
-			*delim = '\0';
-			if (inet_pton(AF_INET, tstr, base) != 1) {
+			if ((len = strnlen(delim, BUFSIZ)) >= BUFSIZ) {
 				*base = 0;
 				*netmask = 0;
 				pclose(output);
 				return false;
-			} else if (inet_pton(AF_INET, delim + 1, netmask) != 1) {
+			} else if (delim[len] == '\n') {
+				delim[len] = '\0';
+			}
+			*delim = '\0';
+			if (inet_pton(AF_INET, tstr, base) == 0) {
+				*base = 0;
+				*netmask = 0;
+				pclose(output);
+				return false;
+			} else if (inet_pton(AF_INET, delim + 1, netmask) == 0) {
 				*base = 0;
 				*netmask = 0;
 				pclose(output);
@@ -83,7 +90,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			*base = 0;
 			*netmask = 0;
 			return false;
-		} else if (inet_pton(AF_INET, ptr.o->v.string, base) != 1) {
+		} else if (inet_pton(AF_INET, ptr.o->v.string, base) == 0) {
 			*base = 0;
 			*netmask = 0;
 			return false;
@@ -95,7 +102,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			*base = 0;
 			*netmask = 0;
 			return false;
-		} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) != 1) {
+		} else if (inet_pton(AF_INET, ptr.o->v.string, netmask) == 0) {
 			*base = 0;
 			*netmask = 0;
 			return false;
@@ -350,62 +357,152 @@ void post_wan_ip(yajl_val top)
 		printf("{\"errors\":[\"Unexpected DHCP alternative is in use for WAN IP address.\"]}");
 		return;
 	}
-	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
-			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		strncpy(ipaddr, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The WAN IP address has not yet been set in UCI.\""); */
-		/* TODO: get from ifconfig if dhcp */
-	} else {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN IP address from UCI.\"]}");
-		return;
-	}
-	strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
-			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		strncpy(netmask, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The WAN netmask has not yet been set in UCI.\""); */
-		/* TODO: get from ifconfig if dhcp */
-	} else {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN netmask from UCI.\"]}");
-		return;
-	}
-	strncpy(uci_lookup_str, GATEWAY_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
-			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		strncpy(gateway, ptr.o->v.string, BUFSIZ);
-	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
-		/* TODO: get from ifconfig if dhcp */
-	} else {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}");
-		return;
-	}
-	strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
-			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+	if (dhcp) {
+		FILE* output = popen(GET_WAN_COMMAND, "r");
+		char tstr[BUFSIZ];
+		char* delim = tstr;
+		size_t len = 0;
+
+		if (output == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 adress and netmask for WAN.\"]}");
+			return;
+		} else if (fgets(tstr, BUFSIZ, output) == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 addres and netmask for WAN.\"]}");
+			pclose(output);
+			return;
+		} else if ((delim = index(tstr, ' ')) == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 address and netmask for WAN.\"]}");
+			pclose(output);
+			return;
+		} else {
+			if ((len = strnlen(delim, BUFSIZ)) >= BUFSIZ) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to get DHCP IPv4 address annd netmask for WAN.\"]}");
+				pclose(output);
+				return;
+			} else if (delim[len] == '\n') {
+				delim[len] = '\0';
+			}
+			*delim = '\0';
+			strncpy(ipaddr, tstr, BUFSIZ);
+			strncpy(netmask, delim + 1, BUFSIZ);
+		}
+
+		if (pclose(output) == -1 || (output = popen(GET_GATEWAY_COMMAND, "r")) == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway adress for WAN.\"]}");
+			return;
+		} else if (fgets(gateway, BUFSIZ, output) == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway addres for WAN.\"]}");
+			pclose(output);
+			return;
+		} else if ((len = strnlen(gateway, BUFSIZ)) >= BUFSIZ) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway address for WAN.\"]}");
+			pclose(output);
+			return;
+		} else if (gateway[len] == '\n') {
+			gateway[len] = '\0';
+		}
+
 		char* tdns = dns;
 		size_t dnslen = BUFSIZ;
-		struct uci_element* elm;
-		uci_foreach_element(&(ptr.o->v.list), elm) {
-			astpnprintf(&tdns, &dnslen, ",\"%s\"", elm->name);
+		if (pclose(output) == -1 || (output = popen(GET_DNS_COMMAND, "r")) == NULL) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DNS addresses for WAN.\"]}");
+			return;
 		}
-	} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-		/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
-		/* TODO: get from ifconfig if dhcp */
+		while (fgets(tstr, BUFSIZ, output) != NULL) {
+			if ((len = strnlen(tstr, BUFSIZ)) >= BUFSIZ) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"errors\":[\"Unable to get DNS address for WAN.\"]}");
+				pclose(output);
+				return;
+			} else if (tstr[len] == '\n') {
+				tstr[len] = '\0';
+			}
+			astpnprintf(&tdns, &dnslen, ",\"%s\"", tstr);
+		}
+		if (!feof(output)) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to get DNS adresses for WAN.\"]}");
+			pclose(output);
+			return;
+		}
+		pclose(output);
+
 	} else {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}");
-		return;
+		strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+			strncpy(ipaddr, ptr.o->v.string, BUFSIZ);
+		} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+			/* astpnprintf(&terrors, &errlen, ",\"The WAN IP address has not yet been set in UCI.\""); */
+			/* TODO: get from ifconfig if dhcp */
+		} else {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to retrieve WAN IP address from UCI.\"]}");
+			return;
+		}
+		strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+			strncpy(netmask, ptr.o->v.string, BUFSIZ);
+		} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+			/* astpnprintf(&terrors, &errlen, ",\"The WAN netmask has not yet been set in UCI.\""); */
+			/* TODO: get from ifconfig if dhcp */
+		} else {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to retrieve WAN netmask from UCI.\"]}");
+			return;
+		}
+		strncpy(uci_lookup_str, GATEWAY_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+			strncpy(gateway, ptr.o->v.string, BUFSIZ);
+		} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+			/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
+			/* TODO: get from ifconfig if dhcp */
+		} else {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}");
+			return;
+		}
+		strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
+				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
+			char* tdns = dns;
+			size_t dnslen = BUFSIZ;
+			struct uci_element* elm;
+			uci_foreach_element(&(ptr.o->v.list), elm) {
+				astpnprintf(&tdns, &dnslen, ",\"%s\"", elm->name);
+			}
+		} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
+			/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
+			/* TODO: get from ifconfig if dhcp */
+		} else {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}");
+			return;
+		}
 	}
 
 	char data[BUFSIZ];

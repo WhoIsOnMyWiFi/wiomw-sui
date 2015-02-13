@@ -306,7 +306,7 @@ void post_update(yajl_val api_yajl)
 			}
 		}
 		struct stat stat_res;
-		unsigned char raw_hash[16];
+		/*unsigned char raw_hash[16];*/
 		char hash[33];
 		FILE* command_output;
 		if (stat(UPGRADE_FILE, &stat_res) != 0) {
