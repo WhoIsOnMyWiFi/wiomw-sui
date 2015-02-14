@@ -1187,10 +1187,7 @@
         </div>	 \
         <div class="row">	        \
           <div class="one-third column">	\
-	         WAN DHCP <select name="wan_dhcp" id="wan_dhcp" class="u-full-width"> \
-			    <option value="true" selected>Use DHCP</option> \
-			    <option value="false">Set Manually</option> \
-			  </select> \
+	         WAN DHCP <input type="checkbox" name="wan_dhcp" id="wan_dhcp" value="1"> \
 	    <br/>WAN IP <input placeholder="" type="text" class="u-full-width" id="wan_ip" name="wan_ip"> \
 	    <br/>WAN Netmask <input placeholder="" type="text" class="u-full-width" id="wan_netmask" name="wan_netmask"> \
 	    <br/>WAN Gateway <input placeholder="" type="text" class="u-full-width" id="wan_gateway" name="wan_gateway"> \
@@ -1220,7 +1217,19 @@
       
     $.post("cgi-bin/sui.cgi?wan_ip", json_data)
 	.done(function( json_response ) {		
-		alert(json_response.dhcp);
+		if(json_response.dhcp)
+		{
+		  $("#wan_dhcp").prop('checked', true);
+		}
+		else
+		{
+		  $("#wan_dhcp").prop('checked', false);
+		}
+		
+		$("#wan_ip").val(json_response.ip);
+		$("#wan_netmask").val(json_response.netmask);
+		$("#wan_gateway").val(json_response.gateway);
+		$("#wan_dns").val(json_response.dns);
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -1235,27 +1244,37 @@
 
   function advmm_wan_action()
   {
-      var new_wan_dhcp = $("#wan_dhcp").val();
+      var network_creds;//what ultimately will be sent to sui.cgi
+      
+      var new_wan_dhcp = "false";
+      if($("#wan_dhcp").prop('checked'))
+      {
+	new_wan_dhcp = "true";
+      }
       var new_wan_ip = $("#wan_ip").val();
       var new_wan_netmask = $("#wan_netmask").val();
       var new_wan_gateway = $("#wan_gateway").val();
       var new_wan_dns = $("#wan_dns").val();  
       if(new_wan_dhcp == "true")
-      {	//if using dhcp, just drop the other values
-	new_wan_ip = "";
-	new_wan_netmask = "";
-	new_wan_gateway = "";
-	new_wan_dns = "";
+      {	//if using dhcp, only send dhcp, and ignore everything else
+	  var network_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash,
+		  "dhcp": new_wan_dhcp
+	  };      
       }
-      var network_creds = {
-	      "psalt": g_psalt,
-	      "phash": g_phash,
-	      "dhcp": new_wan_dhcp,	      
-	      "ip": new_wan_ip,
-	      "netmask": new_wan_netmask,
-	      "gateway": new_wan_gateway,
-	      "dns": new_wan_dns
-      };
+      else
+      {
+	  var network_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash,
+		  "dhcp": new_wan_dhcp,	      
+		  "ip": new_wan_ip,
+		  "netmask": new_wan_netmask,
+		  "gateway": new_wan_gateway,
+		  "dns": new_wan_dns
+	  };
+      }
       
       var json_data = $.toJSON(network_creds);
       alert(json_data);
