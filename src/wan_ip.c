@@ -35,7 +35,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 	char tstr[BUFSIZ];
 	ctx = uci_alloc_context();
 
-	snprintf(tstr, BUFSIZ, "%s", PROTO_UCI_PATH);
+	strncpy(tstr, PROTO_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 			|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 		*base = 0;
@@ -87,7 +87,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 		pclose(output);
 		return true;
 	} else if (strncmp(ptr.o->v.string, "static", 7) == 0) {
-		snprintf(tstr, BUFSIZ, "%s", IPADDR_UCI_PATH);
+		strncpy(tstr, IPADDR_UCI_PATH, BUFSIZ);
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
@@ -99,7 +99,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 			return false;
 		}
 
-		snprintf(tstr, BUFSIZ, "%s", NETMASK_UCI_PATH);
+		strncpy(tstr, NETMASK_UCI_PATH, BUFSIZ);
 		if ((res = uci_lookup_ptr(ctx, &ptr, tstr, true)) != UCI_OK
 				|| (ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
 			*base = 0;
@@ -148,8 +148,17 @@ void post_wan_ip(yajl_val top)
 	gateway[0] = '\0';
 	dns[0] = '\0';
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
-	if (dhcp_yajl == NULL || !YAJL_IS_TRUE(dhcp_yajl)) {
-		dhcp = false;
+	if (dhcp_yajl == NULL) {
+		if (YAJL_IS_TRUE(dhcp_yajl)) {
+			dhcp = true;
+		} else if (YAJL_IS_FALSE(dhcp_yajl)) {
+			dhcp = false;
+		} else {
+			printf("Status: 422 Unprocessable Entity\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"DHCP value must be true or false (literally {\"dhcp\":true} or {\"dhcp\":false} as per the JSON spec; values such as 1, \"yes\", \"true\", \"1\", etc. are not currently accepted).\"]}");
+			return;
+		}
 	}
 	if (ipaddr_yajl != NULL) {
 		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
@@ -256,9 +265,9 @@ void post_wan_ip(yajl_val top)
 				|| strnlen(ipaddr, BUFSIZ) != 0
 				|| strnlen(netmask, BUFSIZ) != 0
 				|| strnlen(gateway, BUFSIZ) != 0
-				|| strnlen(dns, BUFSIZ) != 0)) {
+				|| dns_yajl != NULL)) {
 		if (dhcp_yajl != NULL) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", PROTO_UCI_PATH, dhcp? "dhcp" : "static");
+			snprintf(uci_lookup_str, BUFSIZ, PROTO_UCI_PATH "=%s", dhcp? "dhcp" : "static");
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
@@ -269,7 +278,7 @@ void post_wan_ip(yajl_val top)
 			}
 		}
 		if (strnlen(ipaddr, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", IPADDR_UCI_PATH, ipaddr);
+			snprintf(uci_lookup_str, BUFSIZ, IPADDR_UCI_PATH "=%s", ipaddr);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
@@ -280,7 +289,7 @@ void post_wan_ip(yajl_val top)
 			}
 		}
 		if (strnlen(netmask, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", NETMASK_UCI_PATH, netmask);
+			snprintf(uci_lookup_str, BUFSIZ, NETMASK_UCI_PATH "=%s", netmask);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
@@ -291,7 +300,7 @@ void post_wan_ip(yajl_val top)
 			}
 		}
 		if (strnlen(gateway, BUFSIZ) != 0) {
-			snprintf(uci_lookup_str, BUFSIZ, "%s=%s", GATEWAY_UCI_PATH, gateway);
+			snprintf(uci_lookup_str, BUFSIZ, GATEWAY_UCI_PATH "=%s", gateway);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
@@ -301,19 +310,21 @@ void post_wan_ip(yajl_val top)
 				return;
 			}
 		}
-		if (strnlen(dns, BUFSIZ) != 0) {
+		if (dns_yajl != NULL) {
 			char* tdns = dns;
 			unsigned int i = 0;
-			snprintf(uci_lookup_str, BUFSIZ, "%s", DNS_UCI_PATH);
+			strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| (res = uci_delete(ctx, &ptr)) != UCI_OK) {
+					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0
+						&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
+							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to change old WAN DNS servers in UCI.\"]}");
 				return;
 			}
 			for (i = 0; i < dns_count; i++) {
-				snprintf(uci_lookup_str, BUFSIZ, "%s=%s", DNS_UCI_PATH, tdns);
+				snprintf(uci_lookup_str, BUFSIZ, DNS_UCI_PATH "=%s", tdns);
 				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_add_list(ctx, &ptr)) != UCI_OK) {
 					printf("Status: 500 Internal Server Error\n");
@@ -323,7 +334,7 @@ void post_wan_ip(yajl_val top)
 				}
 				tdns += strlen(tdns) + 1;
 			}
-			if ((res = uci_save(ctx, ptr.p)) != UCI_OK) {
+			if (dns_count > 0 && (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}");
