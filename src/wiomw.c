@@ -145,7 +145,7 @@ void post_wiomw(yajl_val top)
 		} else {
 			strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0
+					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0
 						&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
 							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
