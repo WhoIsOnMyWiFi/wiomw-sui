@@ -1081,14 +1081,15 @@
         </div>	 \
         <div class="row">	        \
           <div class="one-third column">	\
+	    Current Version: <label id="cur_version">...</label> \
 	  </div>	\
           <div class="two-thirds column">	\
           </div>	\
         </div>	\
         <div class="row">	\
           <div class="twelve columns">	\
-            <input type="button" class="button-primary u-float-left" onClick="advmm_routerupdate_action();" value="Check for Update" />	\
-            <input type="button" class="button-primary u-float-left" onClick="advmm_install_update_action();" value="Update Router" />	\
+            <input type="button" class="button-primary u-float-left" id="btn_check_update" onClick="advmm_check_update_action();" value="Check for Updates" />	\
+            <br/><input type="button" class="button-primary u-float-left" id="btn_install_update" onClick="advmm_install_update_action();" value="Update Router" />	\
             <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
             <br/><span class="instructionText">NOTE: Updating to the latest Router Firmware is always recommend.  Firmware update will require a Router Restart. \
 	    </span>	\
@@ -1096,9 +1097,30 @@
         </div>	\
         ';  
         $("#form_main").html(form_main_html);
+        $("#btn_install_update").hide();
+        
+      var network_creds = {
+	      "psalt": g_psalt,
+	      "phash": g_phash,
+      };      
+      
+      var json_data = $.toJSON(network_creds);
+      
+    $.post("cgi-bin/sui.cgi?version", json_data)
+	.done(function( json_response ) {		
+	      $("#cur_version").html(json_response.version);	  
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      var json_result = $.parseJSON(xhr.responseText);	      
+	      $("#statusText").show().html("Version Check Settings Error");    
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {	alert(json_result.errors[i]);		
+	      }		
+	});                  
+        
   }
   
-  function advmm_routerupdate_action()
+  function advmm_check_update_action()
   {
       //this might need to be inside of it's own separate gui...
       var network_creds = {
@@ -1130,8 +1152,9 @@
 	    g_firmware_md5 = json_response.md5;
 	    g_firmware_size = json_response.size;
 	    g_firmware_version = json_response.version;
-	    alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
-	    advmm_install_update_gui();
+	    //alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
+	    //advmm_install_update_gui();
+	    $("#btn_install_update").show();
 	  }
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -1157,14 +1180,15 @@
       };      
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?update", json_data)
 	.done(function( json_response ) {		
-	  //Right now, unfortunately, the browser appears to hang, but the update is happening
-	  //maybe don't have a done function, or just alternatively, also set a timeout to do something else...
+	  advmm_sysupgrade_gui();
+	  //alert("sui.cgi?update with values is done");
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
+	    alert("sui.cgi?update with values is error");
 	      var json_result = $.parseJSON(xhr.responseText);	      
 	      $("#statusText").html("Update Error");    
 	      for(var i = 0; i < json_result.errors.length; i++)
@@ -1173,6 +1197,77 @@
 	});                     
   
   }
+  
+  function advmm_sysupgrade_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Upgrading</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Upgraded to latest version: ' + g_firmware_version + '</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "Wireless Network: <b>" + g_network_ssid + "</b>";
+	main_html = main_html + '\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+	    Manage Router: <a href="http://myrouter.lan">http://myrouter.lan</a><br/> \
+	    Manage Devices: <a href="http://www.whoisonmywifi.net">http://www.whoisonmywifi.net</a> <br/> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>';
+        
+	  var network_creds = {
+		  "psalt": g_psalt,
+		  "phash": g_phash,
+	  };      
+	  
+	  var json_data = $.toJSON(network_creds);
+	  
+	$.post("cgi-bin/sui.cgi?version", json_data)
+	    .done(function( json_response ) {		
+		  if(g_firmware_version != json_response.version)
+		  {
+		    alert("An Error Occurred Updating to the latest version.  Version: " + json_response.version + " remains on router");
+		  }
+	    })
+	    .error(function (xhr, ajaxOptions, thrownError) {
+		  var json_result = $.parseJSON(xhr.responseText);	      
+		  $("#statusText").show().html("Version Check Settings Error");    
+		  for(var i = 0; i < json_result.errors.length; i++)
+		  {	alert(json_result.errors[i]);		
+		  }		
+	    });        
+        
+        
+	$("#statusText").show().html(main_html); 
+      }, 120000);      
+      
+  }  
+  
+  
   
   function advmm_wan_gui()
   {
