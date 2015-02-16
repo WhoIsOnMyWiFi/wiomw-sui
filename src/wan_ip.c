@@ -147,8 +147,7 @@ void post_wan_ip(yajl_val top)
 	netmask[0] = '\0';
 	gateway[0] = '\0';
 	dns[0] = '\0';
-	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
-	if (dhcp_yajl == NULL) {
+	if (dhcp_yajl != NULL) {
 		if (YAJL_IS_TRUE(dhcp_yajl)) {
 			dhcp = true;
 		} else if (YAJL_IS_FALSE(dhcp_yajl)) {
