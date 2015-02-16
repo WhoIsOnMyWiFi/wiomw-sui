@@ -1229,7 +1229,7 @@
 		$("#wan_ip").val(json_response.ip);
 		$("#wan_netmask").val(json_response.netmask);
 		$("#wan_gateway").val(json_response.gateway);
-		$("#wan_dns").val(json_response.dns);
+		$("#wan_dns").val(json_response.dns[0]);
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -1246,16 +1246,17 @@
   {
       var network_creds;//what ultimately will be sent to sui.cgi
       
-      var new_wan_dhcp = "false";
+      var new_wan_dhcp = false;
       if($("#wan_dhcp").prop('checked'))
       {
-	new_wan_dhcp = "true";
+	new_wan_dhcp = true;
       }
       var new_wan_ip = $("#wan_ip").val();
       var new_wan_netmask = $("#wan_netmask").val();
       var new_wan_gateway = $("#wan_gateway").val();
-      var new_wan_dns = $("#wan_dns").val();  
-      if(new_wan_dhcp == "true")
+      var new_wan_dns_array = [];
+      new_wan_dns_array[0] = $("#wan_dns").val();
+      if(new_wan_dhcp)
       {	//if using dhcp, only send dhcp, and ignore everything else
 	  var network_creds = {
 		  "psalt": g_psalt,
@@ -1272,12 +1273,12 @@
 		  "ip": new_wan_ip,
 		  "netmask": new_wan_netmask,
 		  "gateway": new_wan_gateway,
-		  "dns": new_wan_dns
+		  "dns": new_wan_dns_array
 	  };
       }
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?wan_ip", json_data)
 	.done(function( json_response ) {
@@ -1359,7 +1360,7 @@
       };
       
       var json_data = $.toJSON(network_creds);
-      alert(json_data);
+      //alert(json_data);
       
     $.post("cgi-bin/sui.cgi?lan_ip", json_data)
 	.done(function( json_response ) {
