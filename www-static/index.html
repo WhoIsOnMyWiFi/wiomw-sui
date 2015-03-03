@@ -1475,12 +1475,13 @@
   $(document).ready(function() {
     login_gui();    
     
-    
+    /*
+    //causes infinite loop on Safari
     window.addEventListener("popstate", function(e) {
 	location.href='';
-	//alert("Calling PopState");
+	alert("Calling PopState");
     });
-    
+    */
     
   });
   
