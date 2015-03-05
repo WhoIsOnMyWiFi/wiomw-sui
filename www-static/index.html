@@ -21,6 +21,7 @@
   var g_network_psk;
   
   var g_internet_connected;
+  var g_internet_image_loaded;  
   var g_wiomw_username;
   var g_wiomw_password;
   var g_wiomw_agentkey;
@@ -51,6 +52,7 @@
     g_network_psk = "";
     
     g_internet_connected = false;
+    g_internet_image_loaded = false;
     g_wiomw_username = "";
     g_wiomw_password = "";
     g_wiomw_agentkey = "";
@@ -65,14 +67,15 @@
   {
     //check if Amazon S3 is up and running
     var i = new Image();
-    i.onload = callback_connected;
-    i.onerror = callback_disconnected;
+    i.onload = function(){ g_internet_image_loaded = true; callback_connected(); }
+    //i.onerror = function(){ g_internet_image_loaded = false; callback_disconnected(); }//don't use this anymore
     // CHANGE IMAGE URL TO ANY IMAGE YOU KNOW IS LIVE
     i.src = 'http://www.whoisonmywifi.com.s3.amazonaws.com/internet_traffic.png?d=' + escape(Date());
     // escape(Date()) is necessary to override possibility of image coming from cache    
-    
+    setTimeout(function(){ if(!g_internet_image_loaded) { callback_disconnected(); }},5000 );    //if it takes at least 10 seconds, do the disconnected
   }  
-
+  
+ 
   //************************************
   //*Handle Login Page
   //************************************
@@ -232,7 +235,7 @@
         <div class="row">	\
           <div class="one-third column">	\
             <input type="button" class="button-primary u-float-left"  onClick="setup_internet_error_gui_action();" value="Check Internet Connection Again" />	\
-            <br/><input type="button" class="button-primary u-float-left" onClick="setup_reboot_action();" value="Restart Router" />\
+            <br/><input type="button" class="button-primary u-float-left" onClick="setup_reboot_action(\'internet\');" value="Restart Router" />\
           </div>	\
           <div class="two-thirds column">	\
           </div>	\
@@ -252,7 +255,16 @@
   function setup_internet_error_gui_action()
   {
     $("#h2_error").hide();
-    $("#statusText").html("Checking Internet Connection...").show().fadeOut(3000);   
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Checking Internet Connection....	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        ');
+    $("#statusText").html("Please wait for Diagnostic to Complete...").show().fadeOut(5000);   
     setup_detect_internet_action();
   }
   
@@ -477,7 +489,7 @@
           <div class="one-third column">	\
           </div>	\
           <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="setup_reboot_action();" value="Restart Router" />	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_reboot_action(\'setup_complete\');" value="Restart Router" />	\
           </div>	\
         </div>	\
         <div class="row">	\
@@ -488,7 +500,7 @@
 	$("#form_main").html(main_form_html);	
   }  
   
-  function setup_reboot_action()
+  function setup_reboot_action(reboot_reason)
   {      
       var reboot_creds = {
 	      "psalt": g_psalt,
@@ -500,7 +512,7 @@
     $.post("cgi-bin/sui.cgi?reboot", json_data)
 	.done(function( json_response ) {		
 		
-	    setup_restart_gui();
+	    setup_restart_gui(reboot_reason);
 	  
 	})
 	.error(function (xhr, ajaxOptions, thrownError) {
@@ -512,8 +524,11 @@
 	});               
   }
   
-  function setup_restart_gui()
+  function setup_restart_gui(reboot_reason)
   {
+    if(reboot_reason == "setup_complete")
+    {
+  
       $("#form_usermsg").html(' \
       	<div class="container"> \
 	  <h2>Router Restarting</h2> \
@@ -554,7 +569,45 @@
         </div>';
 	$("#statusText").show().html(main_html); 
       }, 60000);      
+    }
+    if(reboot_reason == "internet")
+    {
+    
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
       
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+	    Log back into the Router <a href="http://myrouter.lan">http://myrouter.lan</a><br/> \
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);          
+    
+    
+    
+    }
   }    
   
   
