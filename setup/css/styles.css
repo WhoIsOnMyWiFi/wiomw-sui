@@ -1,0 +1,191 @@
+@import url(standardize.css);
+@import url(skeleton.css);
+/*  Background Color and Gradient*/
+html {
+  height: 100%; }
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: white;
+  background: #070067;
+  background: -webkit-linear-gradient(109deg, #070067 0%, #293c92 100%) white;
+  background: -moz-linear-gradient(109deg, #070067 0%, #293c92 100%) white;
+  background: -o-linear-gradient(109deg, #070067 0%, #293c92 100%) white;
+  background: -ms-linear-gradient(109deg, #070067 0%, #293c92 100%) white;
+  background: linear-gradient(341deg, #070067 0%, #293c92 100%) white; }
+
+.header-row {
+  width: 100%;
+  margin: 0 0 2rem;
+  padding: 0;
+  clear: both;
+  background-color: #0b183e; }
+
+.header-row h1 {
+  margin: 0;
+  padding: .2em 0;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+  font-size: 1.8em;
+  line-height: 1.8em;
+  font-weight: 100;
+  color: white;
+  white-space: nowrap; }
+  .header-row h1 em.clean-underline {
+    text-shadow: 3px 0 #0E1E4D, 1px 0 #0E1E4D, -1px 0 #0E1E4D, -2px 0 #0E1E4D; }
+
+.flash-row {
+  width: 100%;
+  margin: -1.3em 0 2rem;
+  padding: 0;
+  clear: both;
+  background-color: #1C3C9B; }
+
+.flash-row h2 {
+  margin: 0;
+  padding: .2em 0;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+  font-size: 1.4em;
+  line-height: 1.4em;
+  font-weight: 100;
+  color: white;
+  white-space: nowrap; }
+  .flash-row h2 em.clean-underline {
+    text-shadow: 3px 0 #0E1E4D, 1px 0 #0E1E4D, -1px 0 #0E1E4D, -2px 0 #0E1E4D; }
+
+.error-message {
+  width: 100%;
+  margin: -1.3em 0 2rem;
+  padding: 0;
+  clear: both;
+  background-color: #990000; }
+
+.error-message h2 {
+  margin: 0;
+  padding: .2em 0;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  letter-spacing: 1px;
+  font-size: 1.4em;
+  line-height: 1.4em;
+  font-weight: 100;
+  color: white;
+  white-space: nowrap; }
+  .error-message h2 em.clean-underline {
+    text-shadow: 3px 0 #0E1E4D, 1px 0 #0E1E4D, -1px 0 #0E1E4D, -2px 0 #0E1E4D; }
+
+legend {
+  font-size: 1.4em;
+  line-height: 1.4em;
+  font-weight: 200;
+  letter-spacing: 1px;
+  word-spacing: 1px; }
+
+input {
+  color: #353535;
+  font-size: 14px; }
+
+button,
+.button,
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  font-size: 14px;
+  font-weight: 200;
+  height: 36px;
+  line-height: 36px; }
+button.button-primary,
+.button.button-primary,
+input[type="submit"].button-primary,
+input[type="reset"].button-primary,
+input[type="button"].button-primary {
+    background: #1C3C9B;
+    border: none; }
+button.button-primary:hover, button.button-primary:active,
+.button.button-primary:hover,
+.button.button-primary:active,
+input[type="submit"].button-primary:hover,
+input[type="submit"].button-primary:active,
+input[type="reset"].button-primary:hover,
+input[type="reset"].button-primary:active,
+input[type="button"].button-primary:hover,
+input[type="button"].button-primary:active {
+      background: #244dc6;
+      border: none; }
+
+button.button-cancel,
+input[type="submit"].button-cancel,
+input[type="reset"].button-cancel,
+input[type="button"].button-cancel
+{
+  color: #FFF;
+  background: #7C7C7C;
+  border: none; 
+}
+button.button-cancel:hover, button.button-cancel:active,
+input[type="submit"].button-cancel:hover, input[type="submit"].button-cancel:active,
+input[type="reset"].button-cancel:hover, input[type="reset"].button-cancel:active,
+input[type="button"].button-cancel:hover, input[type="button"].button-cancel:active
+{
+    color: #FFF;
+    background: #9C9C9C;
+    border: none; 
+}      
+
+caption {
+  font-size: 1.4em;
+  line-height: 1.4em;
+  font-weight: 200;
+  letter-spacing: 1px;
+  word-spacing: 1px;
+  text-align: left;
+  text-transform: uppercase;
+  margin: 1em 0; }
+
+th,
+td {
+  border-bottom: 1px solid #383385; }
+
+.settings-label {
+  font-size: 1.1em;
+  line-height: 1.2em;
+  text-transform: uppercase;
+  font-weight: 200;
+  color: #cccccc;
+  letter-spacing: 1px;
+  margin-bottom: .5em; }
+
+.settings-value {
+  font-size: 1.4em;
+  line-height: 1.4em; }
+
+.instruction-text {
+  font-weight: 400;
+  font-size: 1.1em;
+  letter-spacing: 1px; }
+
+/*  A Cleaner Underline
+  -- based on  http://www.acusti.ca/blog/2014/11/28/towards-a-more-perfect-link-underline
+*/
+.clean-underline {
+  text-decoration: none;
+  background: -webkit-linear-gradient(top, transparent 49%, #858585 50%) repeat-x;
+  background: linear-gradient(to bottom, transparent 49%, #858585 50%) repeat-x;
+  background-size: 1px 1px;
+  background-position: 0 95%;
+  text-shadow: 2px 0 #293c92, 1px 0 #293c92, -1px 0 #293c92, -2px 0 #293c92; }
+
+/* Main Menu specific style */
+.mm_link ul{
+  list-style-type: none;
+}
+.mm_link a{
+    font-size: 18px;
+    color: #3ECEFB;
+    text-decoration: underline;    
+}
+.mm_link a:hover{
+    color: #FFF;
+}
