@@ -1,4 +1,5 @@
-bin_PROGRAMS = sui.cgi xsrfd
+bin_PROGRAMS = sui.cgi
+sbin_PROGRAMS = xsrfd
 
 sui_cgi_SOURCES = main_cgi.c \
 		  password.h password.c \
