@@ -56,6 +56,7 @@ void post_password(yajl_val top)
 		return;
 	}
 
+	bool valid_password = false;
 	if (strlen(spass->sp_pwdp) < 3) {
 		char passwd_cmd[BUFSIZ] = PARTIAL_PASSWD_CMD "/tmp/sui-error-XXXXXX";
 		char* tempfile = passwd_cmd + strlen(PARTIAL_PASSWD_CMD);
@@ -99,58 +100,39 @@ void post_password(yajl_val top)
 			printf("{\"errors\":[\"Unable to retrieve password hash.\"]}");
 			return;
 		}
+
+		valid_password = true;
 	} else if ((hash = crypt(password, spass->sp_pwdp)) == NULL) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to hash password.\"]}");
 		return;
-	} else if (sleep(PASSWORD_CHECK_WAIT) != 0) {
+	} else if (strcmp(hash, spass->sp_pwdp) == 0) {
+		valid_password = true;
+	}
+
+	int xsrfc_status = -1;
+	struct xsrft token;
+	token.val[0] = (char)0x00;
+	if ((xsrfc_status = xsrfc(&token)) < 0 && sleep(PASSWORD_CHECK_WAIT) != 0) {
 		/* Failed to sleep? That sounds suspicious.... */
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
 		/* ...so how about a unique but tricksy error message? */
 		printf("{\"errors\":[\"Unable to hash pasword.\"]}");
 		return;
-	} else if (strcmp(hash, spass->sp_pwdp) != 0) {
+	}
+
+	if (!valid_password) {
 		printf("Status: 403 Forbidden\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Invalid password.\"]}");
 		return;
 	}
 
-	struct uci_context* ctx;
-	struct uci_ptr ptr;
-	int res = 0;
-	char uci_lookup_str[BUFSIZ];
-	bool setup = false;
-	ctx = uci_alloc_context();
-
-	strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH, BUFSIZ);
-	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
-		return;
-	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
-		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to determine setup status.\"]}");
-			return;
-		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-			setup = true;
-		}
-	}
-
-	int xsrfc_status = -1;
-	struct xsrft token;
 	char psalt_and_shash[BUFSIZ];
 	char phash[129];
-
-	token.val[0] = (char)0x00;
-
-	if ((xsrfc_status = xsrfc(&token)) <= 0) {
+	if (xsrfc_status <= 0) {
 		unsigned char raw_psalt[CRED_RANDOM_DATA_LEN];
 	
 		if (urandom(raw_psalt, CRED_RANDOM_DATA_LEN) < 0) {
@@ -182,6 +164,31 @@ void post_password(yajl_val top)
 	
 		/* so we don't have to copy the psalt elsewhere... */
 		psalt_and_shash[CRED_RANDOM_DATA_LEN * 2] = '\0';
+	}
+
+	struct uci_context* ctx;
+	struct uci_ptr ptr;
+	int res = 0;
+	char uci_lookup_str[BUFSIZ];
+	bool setup = false;
+	ctx = uci_alloc_context();
+
+	strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
+		return;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to determine setup status.\"]}");
+			return;
+		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+			setup = true;
+		}
 	}
 
 	printf("Status: 200 OK\n");

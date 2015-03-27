@@ -93,10 +93,14 @@ int main()
 				session_calls = 0;
 				if (now <= (login_attempts[login_number] + XSRFD_CERTAIN_BRUTE_FORCE_TIME)) {
 					syslog(LOG_WARNING, "XSRFD brute force alarm tripped");
-					sleep(XSRFD_CERTAIN_BRUTE_FORCE_SLOWDOWN);
+					if (sleep(XSRFD_CERTAIN_BRUTE_FORCE_SLOWDOWN) != 0) {
+						next.val[0] = (char)0xff;
+					}
 				} else if (now <= (login_attempts[(login_number + XSRFD_CERTAIN_BRUTE_FORCE_COUNT - XSRFD_POSSIBLE_BRUTE_FORCE_COUNT) % XSRFD_CERTAIN_BRUTE_FORCE_COUNT] + XSRFD_POSSIBLE_BRUTE_FORCE_TIME)) {
 					syslog(LOG_INFO, "XSRFD possible brute force alarm tripped");
-					sleep(XSRFD_POSSIBLE_BRUTE_FORCE_SLOWDOWN);
+					if (sleep(XSRFD_POSSIBLE_BRUTE_FORCE_SLOWDOWN) != 0) {
+						next.val[0] = (char)0xff;
+					}
 				}
 
 				login_attempts[login_number] = now;
