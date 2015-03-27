@@ -11,6 +11,7 @@
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
+#include "xsrf.h"
 
 #define PROTO_UCI_PATH "network.wan.proto"
 #define IPADDR_UCI_PATH "network.wan.ipaddr"
@@ -119,7 +120,7 @@ bool get_wan_ip4(uint32_t* base, uint32_t* netmask)
 	}
 }
 
-void post_wan_ip(yajl_val top)
+void post_wan_ip(yajl_val top, struct xsrft* token)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
@@ -155,7 +156,7 @@ void post_wan_ip(yajl_val top)
 		} else {
 			printf("Status: 422 Unprocessable Entity\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"DHCP value must be true or false (literally {\"dhcp\":true} or {\"dhcp\":false} as per the JSON spec; values such as 1, \"yes\", \"true\", \"1\", etc. are not currently accepted).\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"DHCP value must be true or false (literally {\"dhcp\":true} or {\"dhcp\":false} as per the JSON spec; values such as 1, \"yes\", \"true\", \"1\", etc. are not currently accepted).\"]}", token->val);
 			return;
 		}
 	}
@@ -169,12 +170,12 @@ void post_wan_ip(yajl_val top)
 					|| (res = inet_pton(AF_INET, tstr, &temp)) == 0) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A manually-set WAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A manually-set WAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
 				return;
 			} else if (res != 1) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 address.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied WAN IPv4 address.\"]}", token->val);
 				return;
 			}
 			strncpy(ipaddr, tstr, BUFSIZ);
@@ -190,12 +191,12 @@ void post_wan_ip(yajl_val top)
 					|| (res = inet_pton(AF_INET, tstr, &temp)) == 0) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A manually-set WAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A manually-set WAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}", token->val);
 				return;
 			} else if (res != 1) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 netmask.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied WAN IPv4 netmask.\"]}", token->val);
 				return;
 			}
 			strncpy(netmask, tstr, BUFSIZ);
@@ -211,12 +212,12 @@ void post_wan_ip(yajl_val top)
 					|| (res = inet_pton(AF_INET, tstr, &temp)) == 0) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A manually-set WAN gateway address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A manually-set WAN gateway address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
 				return;
 			} else if (res != 1) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to parse supplied WAN IPv4 gateway address.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied WAN IPv4 gateway address.\"]}", token->val);
 				return;
 			}
 			strncpy(gateway, tstr, BUFSIZ);
@@ -236,12 +237,12 @@ void post_wan_ip(yajl_val top)
 						|| (res = inet_pton(AF_INET, tstr, &temp)) == 0) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"A manually-set WAN DNS address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"A manually-set WAN DNS address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
 					return;
 				} else if (res != 1) {
 					printf("Status: 500 Internal Server Error\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to parse a supplied WAN IPv4 DNS address.\"]}");
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse a supplied WAN IPv4 DNS address.\"]}", token->val);
 					return;
 				}
 				astpnprintf(&tdns, &dnslen, "%s", tstr);
@@ -272,7 +273,7 @@ void post_wan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WAN DHCP status to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN DHCP status to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -283,7 +284,7 @@ void post_wan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WAN IP address to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN IP address to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -294,7 +295,7 @@ void post_wan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WAN netmask to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN netmask to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -305,7 +306,7 @@ void post_wan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WAN gateway to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN gateway to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -319,7 +320,7 @@ void post_wan_ip(yajl_val top)
 							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to change old WAN DNS servers in UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to change old WAN DNS servers in UCI.\"]}", token->val);
 				return;
 			}
 			for (i = 0; i < dns_count; i++) {
@@ -328,7 +329,7 @@ void post_wan_ip(yajl_val top)
 						|| (res = uci_add_list(ctx, &ptr)) != UCI_OK) {
 					printf("Status: 500 Internal Server Error\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to add WAN DNS server to UCI.\"]}");
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to add WAN DNS server to UCI.\"]}", token->val);
 					return;
 				}
 				tdns += strlen(tdns) + 1;
@@ -336,7 +337,7 @@ void post_wan_ip(yajl_val top)
 			if (dns_count > 0 && (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -357,7 +358,7 @@ void post_wan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve WAN DHCP status from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN DHCP status from UCI.\"]}", token->val);
 		return;
 	}
 	if (strncmp(proto, "dhcp", 5) == 0) {
@@ -367,7 +368,7 @@ void post_wan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unexpected DHCP alternative is in use for WAN IP address.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unexpected DHCP alternative is in use for WAN IP address.\"]}", token->val);
 		return;
 	}
 	if (dhcp) {
@@ -379,25 +380,25 @@ void post_wan_ip(yajl_val top)
 		if (output == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 adress and netmask for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 adress and netmask for WAN.\"]}", token->val);
 			return;
 		} else if (fgets(tstr, BUFSIZ, output) == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 addres and netmask for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 addres and netmask for WAN.\"]}", token->val);
 			pclose(output);
 			return;
 		} else if ((delim = index(tstr, ' ')) == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 address and netmask for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 address and netmask for WAN.\"]}", token->val);
 			pclose(output);
 			return;
 		} else {
 			if ((len = strnlen(delim, BUFSIZ)) >= BUFSIZ) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to get DHCP IPv4 address annd netmask for WAN.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 address annd netmask for WAN.\"]}", token->val);
 				pclose(output);
 				return;
 			} else if (delim[len-1] == '\n') {
@@ -411,18 +412,18 @@ void post_wan_ip(yajl_val top)
 		if (pclose(output) == -1 || (output = popen(GET_GATEWAY_COMMAND, "r")) == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway adress for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 gateway adress for WAN.\"]}", token->val);
 			return;
 		} else if (fgets(gateway, BUFSIZ, output) == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway addres for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 gateway addres for WAN.\"]}", token->val);
 			pclose(output);
 			return;
 		} else if ((len = strnlen(gateway, BUFSIZ)) >= BUFSIZ) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DHCP IPv4 gateway address for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DHCP IPv4 gateway address for WAN.\"]}", token->val);
 			pclose(output);
 			return;
 		} else if (gateway[len-1] == '\n') {
@@ -434,14 +435,14 @@ void post_wan_ip(yajl_val top)
 		if (pclose(output) == -1 || (output = popen(GET_DNS_COMMAND, "r")) == NULL) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DNS addresses for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS addresses for WAN.\"]}", token->val);
 			return;
 		}
 		while (fgets(tstr, BUFSIZ, output) != NULL) {
 			if ((len = strnlen(tstr, BUFSIZ)) >= BUFSIZ) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to get DNS address for WAN.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS address for WAN.\"]}", token->val);
 				pclose(output);
 				return;
 			} else if (tstr[len-1] == '\n') {
@@ -452,7 +453,7 @@ void post_wan_ip(yajl_val top)
 		if (!feof(output)) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to get DNS adresses for WAN.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS adresses for WAN.\"]}", token->val);
 			pclose(output);
 			return;
 		}
@@ -469,7 +470,7 @@ void post_wan_ip(yajl_val top)
 		} else {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to retrieve WAN IP address from UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN IP address from UCI.\"]}", token->val);
 			return;
 		}
 		strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
@@ -482,7 +483,7 @@ void post_wan_ip(yajl_val top)
 		} else {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to retrieve WAN netmask from UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN netmask from UCI.\"]}", token->val);
 			return;
 		}
 		strncpy(uci_lookup_str, GATEWAY_UCI_PATH, BUFSIZ);
@@ -495,7 +496,7 @@ void post_wan_ip(yajl_val top)
 		} else {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}", token->val);
 			return;
 		}
 		strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
@@ -513,7 +514,7 @@ void post_wan_ip(yajl_val top)
 		} else {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}", token->val);
 			return;
 		}
 	}
@@ -540,7 +541,7 @@ void post_wan_ip(yajl_val top)
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve any data from UCI.\"", token->val);
 		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
@@ -555,7 +556,7 @@ void post_wan_ip(yajl_val top)
 		printf("Content-type: application/json\n\n");
 	}
 
-	printf("{%s", data + 1);
+	printf("{\"xsrf\":\"%s\",%s", token->val, data + 1);
 	/* terrors check isn't really necessary */
 	if (errlen != BUFSIZ && terrors != errors) {
 		printf(",\"errors\":[%s]}", errors + 1);

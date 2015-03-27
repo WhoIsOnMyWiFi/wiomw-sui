@@ -5,14 +5,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <yajl/yajl_tree.h>
+#include "xsrf.h"
 
 #define FULL_VERSION VERSION "-r" RELEASE_NUMBER
 
-void post_version(yajl_val top)
+void post_version(yajl_val top, struct xsrft* token)
 {
 	printf("Status: 200 OK\n");
 	printf("Content-type: application/json\n\n");
-	printf("{\"version\":\""FULL_VERSION"\"}");
+	printf("{\"version\":\""FULL_VERSION"\", \"xsrf\":\"%s\"}", token->val);
 	return;
 }
 

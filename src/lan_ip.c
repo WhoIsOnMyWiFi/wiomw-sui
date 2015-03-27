@@ -1,5 +1,5 @@
 #include <config.h>
-#include "wan_ip.h"
+#include "lan_ip.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -10,6 +10,7 @@
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
+#include "xsrf.h"
 
 #define IPADDR_UCI_PATH "network.lan.ipaddr"
 #define NETMASK_UCI_PATH "network.lan.netmask"
@@ -105,7 +106,7 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 	return never_changed;
 }
 
-void post_lan_ip(yajl_val top)
+void post_lan_ip(yajl_val top, struct xsrft* token)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
@@ -132,12 +133,12 @@ void post_lan_ip(yajl_val top)
 					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"The LAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"The LAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
 				return;
 			} else if (res != 1) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to parse supplied LAN IPv4 address.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied LAN IPv4 address.\"]}", token->val);
 				return;
 			}
 			strncpy(ipaddr, tstr, BUFSIZ);
@@ -153,12 +154,12 @@ void post_lan_ip(yajl_val top)
 					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"The LAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"The LAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}", token->val);
 				return;
 			} else if (res != 1) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to parse supplied LAN IPv4 netmask.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied LAN IPv4 netmask.\"]}", token->val);
 				return;
 			}
 			strncpy(netmask, tstr, BUFSIZ);
@@ -179,7 +180,7 @@ void post_lan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save LAN IP address to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN IP address to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -190,7 +191,7 @@ void post_lan_ip(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save LAN netmask to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN netmask to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -203,7 +204,7 @@ void post_lan_ip(yajl_val top)
 				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save LAN data to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN data to UCI.\"]}", token->val);
 			return;
 		}
 	}
@@ -219,7 +220,7 @@ void post_lan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve LAN IP address from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve LAN IP address from UCI.\"]}", token->val);
 		return;
 	}
 	strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
@@ -230,7 +231,7 @@ void post_lan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve LAN netmask from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve LAN netmask from UCI.\"]}", token->val);
 		return;
 	}
 
@@ -249,7 +250,7 @@ void post_lan_ip(yajl_val top)
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve any data from UCI.\"", token->val);
 		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
@@ -264,7 +265,7 @@ void post_lan_ip(yajl_val top)
 		printf("Content-type: application/json\n\n");
 	}
 
-	printf("{%s", data + 1);
+	printf("{\"xsrf\":\"%s\",%s", token->val, data + 1);
 	if (errlen != BUFSIZ) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {

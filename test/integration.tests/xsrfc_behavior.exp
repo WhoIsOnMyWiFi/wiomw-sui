@@ -1,0 +1,6 @@
+load_lib "dejagnu.exp"
+
+spawn "../src/xsrfd"
+
+host_execute "src/xsrfc_behavior.out"
+

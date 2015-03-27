@@ -1,4 +1,5 @@
 #include <config.h>
+#include "wiomw.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
+#include "xsrf.h"
 
 #define AGENTKEY_UCI_PATH "wiomw.agent.agentkey"
 #define PUBTOKEN_UCI_PATH "wiomw.agent.pubtoken"
@@ -19,7 +21,7 @@
 #define MAX_PUBTOKEN_LENGTH 1024
 #define MAX_PRIVTOKEN_LENGTH 4096
 
-void post_wiomw(yajl_val top)
+void post_wiomw(yajl_val top, struct xsrft* token)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
@@ -47,14 +49,14 @@ void post_wiomw(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", MAX_AGENTKEY_LENGTH);
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_AGENTKEY_LENGTH);
 					return;
 				}
 			}
 			if (i > MAX_AGENTKEY_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", MAX_AGENTKEY_LENGTH);
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"An agentkey is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_AGENTKEY_LENGTH);
 				return;
 			}
 			strncpy(agentkey, tstr, BUFSIZ);
@@ -68,14 +70,14 @@ void post_wiomw(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PUBTOKEN_LENGTH);
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_PUBTOKEN_LENGTH);
 					return;
 				}
 			}
 			if (i > MAX_PUBTOKEN_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PUBTOKEN_LENGTH);
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A pubtoken is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_PUBTOKEN_LENGTH);
 				return;
 			}
 			strncpy(pubtoken, tstr, BUFSIZ);
@@ -89,14 +91,14 @@ void post_wiomw(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PRIVTOKEN_LENGTH);
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_PRIVTOKEN_LENGTH);
 					return;
 				}
 			}
 			if (i > MAX_PRIVTOKEN_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", MAX_PRIVTOKEN_LENGTH);
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A privtoken is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_PRIVTOKEN_LENGTH);
 				return;
 			}
 			strncpy(privtoken, tstr, BUFSIZ);
@@ -117,7 +119,7 @@ void post_wiomw(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save agentkey to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save agentkey to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -128,7 +130,7 @@ void post_wiomw(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save pubtoken to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save pubtoken to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -139,7 +141,7 @@ void post_wiomw(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save privtoken to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save privtoken to UCI.\"]}", token->val);
 				return;
 			}
 		} else {
@@ -150,14 +152,14 @@ void post_wiomw(yajl_val top)
 							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to delete old privtoken from UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to delete old privtoken from UCI.\"]}", token->val);
 				return;
 			}
 		}
 		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}", token->val);
 			return;
 		}
 		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH "=1", BUFSIZ);
@@ -167,7 +169,7 @@ void post_wiomw(yajl_val top)
 				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to mark wiomw as having been setup.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to mark wiomw as having been setup.\"]}", token->val);
 			return;
 		}
 	}
@@ -186,7 +188,7 @@ void post_wiomw(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve agentkey from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve agentkey from UCI.\"]}", token->val);
 		return;
 	}
 	strncpy(uci_lookup_str, PUBTOKEN_UCI_PATH, BUFSIZ);
@@ -198,7 +200,7 @@ void post_wiomw(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve public token from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve public token from UCI.\"]}", token->val);
 		return;
 	}
 	strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
@@ -210,7 +212,7 @@ void post_wiomw(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve private token from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve private token from UCI.\"]}", token->val);
 		return;
 	}
 
@@ -234,7 +236,7 @@ void post_wiomw(yajl_val top)
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve any data from UCI.\"", token->val);
 		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
@@ -249,7 +251,7 @@ void post_wiomw(yajl_val top)
 		printf("Content-type: application/json\n\n");
 	}
 
-	printf("{%s", data + 1);
+	printf("{\"xsrf\":\"%s\",%s", token->val, data + 1);
 	/* terrors check isn't really necessary... */
 	if (errlen != BUFSIZ && terrors != errors) {
 		printf(",\"errors\":[%s]}", errors + 1);

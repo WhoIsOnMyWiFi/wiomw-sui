@@ -11,6 +11,9 @@
 #include <polarssl/sha512.h>
 #include <yajl/yajl_tree.h>
 #include <uci.h>
+#include "urandom.h"
+#include "xsrf.h"
+#include "xsrfc.h"
 
 #define PASSWORD_CHECK_WAIT 5
 #define CRED_CHECK_WAIT 2
@@ -115,19 +118,6 @@ void post_password(yajl_val top)
 		return;
 	}
 
-	char psalt_and_shash[BUFSIZ];
-	unsigned char raw_psalt[CRED_RANDOM_DATA_LEN];
-	FILE* urandom = fopen("/dev/urandom", "r");
-	if (fread(raw_psalt, 1, CRED_RANDOM_DATA_LEN, urandom) != CRED_RANDOM_DATA_LEN) {
-		printf("Status: 500 Internal Server Error\n");
-		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to hash passwod.\"]}");
-		fclose(urandom);
-		return;
-	}
-	/* TODO: check data */
-	fclose(urandom);
-
 	struct uci_context* ctx;
 	struct uci_ptr ptr;
 	int res = 0;
@@ -153,33 +143,60 @@ void post_password(yajl_val top)
 		}
 	}
 
-	char* tpsalt = psalt_and_shash;
-	unsigned char* traw_psalt = raw_psalt;
-	for (traw_psalt = raw_psalt; traw_psalt - raw_psalt < CRED_RANDOM_DATA_LEN; traw_psalt++) {
-		sprintf(tpsalt, "%02X", *traw_psalt);
-		tpsalt += 2;
-	}
-
-	strncpy(psalt_and_shash + (CRED_RANDOM_DATA_LEN * 2), spass->sp_pwdp, BUFSIZ - (CRED_RANDOM_DATA_LEN * 2));
-
-	unsigned char raw_phash[64];
+	int xsrfc_status = -1;
+	struct xsrft token;
+	char psalt_and_shash[BUFSIZ];
 	char phash[129];
 
-	sha512((unsigned char*)psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_phash, 0);
+	token.val[0] = (char)0x00;
 
-	char* tphash = phash;
-	unsigned char* traw_phash = raw_phash;
-	for (traw_phash = raw_phash; traw_phash - raw_phash < 64; traw_phash++) {
-		sprintf(tphash, "%02X", *traw_phash);
-		tphash += 2;
+	if ((xsrfc_status = xsrfc(&token)) <= 0) {
+		unsigned char raw_psalt[CRED_RANDOM_DATA_LEN];
+	
+		if (urandom(raw_psalt, CRED_RANDOM_DATA_LEN) < 0) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to hash passwod.\"]}");
+			return;
+		}
+	
+		char* tpsalt = psalt_and_shash;
+		unsigned char* traw_psalt = raw_psalt;
+		for (traw_psalt = raw_psalt; traw_psalt - raw_psalt < CRED_RANDOM_DATA_LEN; traw_psalt++) {
+			sprintf(tpsalt, "%02X", *traw_psalt);
+			tpsalt += 2;
+		}
+	
+		strncpy(psalt_and_shash + (CRED_RANDOM_DATA_LEN * 2), spass->sp_pwdp, BUFSIZ - (CRED_RANDOM_DATA_LEN * 2));
+	
+		unsigned char raw_phash[64];
+	
+		sha512((unsigned char*)psalt_and_shash, strnlen(psalt_and_shash, BUFSIZ), raw_phash, 0);
+	
+		char* tphash = phash;
+		unsigned char* traw_phash = raw_phash;
+		for (traw_phash = raw_phash; traw_phash - raw_phash < 64; traw_phash++) {
+			sprintf(tphash, "%02X", *traw_phash);
+			tphash += 2;
+		}
+	
+		/* so we don't have to copy the psalt elsewhere... */
+		psalt_and_shash[CRED_RANDOM_DATA_LEN * 2] = '\0';
 	}
-
-	/* so we don't have to copy the psalt elsewhere... */
-	psalt_and_shash[CRED_RANDOM_DATA_LEN * 2] = '\0';
 
 	printf("Status: 200 OK\n");
 	printf("Content-type: application/json\n\n");
-	printf("{\"psalt\":\"%s\",\"phash\":\"%s\"", psalt_and_shash, phash);
+
+	if (xsrfc_status > 0) {
+		printf("{\"xsrf\":\"%s\"", token.val);
+	} else {
+		printf("{\"psalt\":\"%s\",\"phash\":\"%s\"", psalt_and_shash, phash);
+		if (xsrfc_status == 0) {
+			printf(",\"errors\":[\"err1\"]");
+		} else {
+			printf(",\"errors\":[\"err2\"]");
+		}
+	}
 
 	if (!setup) {
 		printf(",\"setup_required\":true}");
@@ -188,8 +205,28 @@ void post_password(yajl_val top)
 	}
 }
 
-bool valid_creds(yajl_val top)
+bool valid_creds(yajl_val top, struct xsrft* token)
 {
+	const char* xsrf_yajl_path[] = {"xsrf", (const char*)0};
+	int xsrfc_status = -1;
+	yajl_val xsrf_yajl = yajl_tree_get(top, xsrf_yajl_path, yajl_t_string);
+	char* xsrf_val = NULL;
+
+	if (xsrf_yajl != NULL && (xsrf_val = YAJL_GET_STRING(xsrf_yajl)) != NULL) {
+		strncpy(token->val, xsrf_val, XSRF_TOKEN_HEX_LENGTH + 1);
+		token->val[XSRF_TOKEN_HEX_LENGTH] = '\0';
+		if ((xsrfc_status = xsrfc(token)) == 0) {
+			printf("Status: 403 Forbidden\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Invalid credentials.\"]}");
+			return false;
+		} else if (xsrfc_status > 0) {
+			return true;
+		}
+	}
+
+	token->val[0] = '\0';
+
 	const char* psalt_yajl_path[] = {"psalt", (const char*)0};
 	const char* phash_yajl_path[] = {"phash", (const char*)0};
 	yajl_val psalt_yajl = yajl_tree_get(top, psalt_yajl_path, yajl_t_string);
@@ -202,8 +239,10 @@ bool valid_creds(yajl_val top)
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"You are not logged in.\"]}");
 		return false;
-	} else if (strnlen((psalt = YAJL_GET_STRING(psalt_yajl)), BUFSIZ) != (CRED_RANDOM_DATA_LEN * 2)
-			|| strnlen((ephash = YAJL_GET_STRING(phash_yajl)), BUFSIZ) != 128) {
+	} else if ((psalt = YAJL_GET_STRING(psalt_yajl)) == NULL
+			|| (ephash = YAJL_GET_STRING(phash_yajl)) == NULL
+			|| strnlen(psalt, BUFSIZ) != (CRED_RANDOM_DATA_LEN * 2)
+			|| strnlen(ephash, BUFSIZ) != 128) {
 		printf("Status: 403 Forbidden\n");
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Invalid credentials.\"]}");

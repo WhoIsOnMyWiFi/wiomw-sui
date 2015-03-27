@@ -1,4 +1,5 @@
 #include <config.h>
+#include "wifi.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
+#include "xsrf.h"
 
 #define MAX_SSID_LENGTH 32
 #define MIN_PSK_LENGTH 8
@@ -26,7 +28,7 @@
 #define DUAL_ENCRYPTION_MODE_UCI_PATH "wireless.@wifi-iface[1].encryption"
 #define DUAL_WIFI_DISABLED_UCI_PATH "wireless.@wifi-device[1].disabled"
 
-void post_wifi(yajl_val top)
+void post_wifi(yajl_val top, struct xsrft* token)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
@@ -50,14 +52,14 @@ void post_wifi(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", MAX_SSID_LENGTH);
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_SSID_LENGTH);
 					return;
 				}
 			}
 			if (i > MAX_SSID_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", MAX_SSID_LENGTH);
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"An SSID is currently limited to up to %d printable ASCII characters.\"]}", token->val, MAX_SSID_LENGTH);
 				return;
 			}
 			strncpy(ssid, tstr, BUFSIZ);
@@ -71,14 +73,14 @@ void post_wifi(yajl_val top)
 				if (tstr[i] < 0x20 || tstr[i] > 0x7E) {
 					printf("Status: 422 Unprocessable Entity\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", MIN_PSK_LENGTH, MAX_PSK_LENGTH);
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", token->val, MIN_PSK_LENGTH, MAX_PSK_LENGTH);
 					return;
 				}
 			}
 			if (i < MIN_PSK_LENGTH || i > MAX_PSK_LENGTH) {
 				printf("Status: 422 Unprocessable Entity\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", MIN_PSK_LENGTH, MAX_PSK_LENGTH);
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"A PSK is currently limited to between %d and %d printable ASCII characters.\"]}", token->val, MIN_PSK_LENGTH, MAX_PSK_LENGTH);
 				return;
 			}
 			strncpy(psk, tstr, BUFSIZ);
@@ -99,7 +101,7 @@ void post_wifi(yajl_val top)
 		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to retrieve the number of wifi cards effected.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve the number of wifi cards effected.\"]}", token->val);
 			return;
 		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0 && strncmp(ptr.o->v.string, "1", 2) == 0) {
 			dual_radios = true;
@@ -114,7 +116,7 @@ void post_wifi(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save ssid to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save ssid to UCI.\"]}", token->val);
 				return;
 			}
 			if (dual_radios) {
@@ -124,7 +126,7 @@ void post_wifi(yajl_val top)
 						|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 					printf("Status: 500 Internal Server Error\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to save ssid of second wifi radio to UCI.\"]}");
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save ssid of second wifi radio to UCI.\"]}", token->val);
 					return;
 				}
 			}
@@ -136,7 +138,7 @@ void post_wifi(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save psk to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save psk to UCI.\"]}", token->val);
 				return;
 			}
 			if (dual_radios) {
@@ -146,7 +148,7 @@ void post_wifi(yajl_val top)
 						|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 					printf("Status: 500 Internal Server Error\n");
 					printf("Content-type: application/json\n\n");
-					printf("{\"errors\":[\"Unable to save psk of second wifi radio to UCI.\"]}");
+					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save psk of second wifi radio to UCI.\"]}", token->val);
 					return;
 				}
 			}
@@ -158,7 +160,7 @@ void post_wifi(yajl_val top)
 				|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save WPA2 mode to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WPA2 mode to UCI.\"]}", token->val);
 			return;
 		}
 		strcpy(uci_lookup_str, WIFI_DISABLED_UCI_PATH);
@@ -168,7 +170,7 @@ void post_wifi(yajl_val top)
 						|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save wifi autostart to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save wifi autostart to UCI.\"]}", token->val);
 			return;
 		}
 		if (dual_radios) {
@@ -178,7 +180,7 @@ void post_wifi(yajl_val top)
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save WPA2 mode of second wifi radio to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WPA2 mode of second wifi radio to UCI.\"]}", token->val);
 				return;
 			}
 			strcpy(uci_lookup_str, DUAL_WIFI_DISABLED_UCI_PATH);
@@ -188,14 +190,14 @@ void post_wifi(yajl_val top)
 							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save wifi autostart of second wifi radio to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save wifi autostart of second wifi radio to UCI.\"]}", token->val);
 				return;
 			}
 		}
 		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save WiFi to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WiFi to UCI.\"]}", token->val);
 			return;
 		}
 		strcpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH "=1");
@@ -206,7 +208,7 @@ void post_wifi(yajl_val top)
 						|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK)) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to set WiFi as having been setup.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to set WiFi as having been setup.\"]}", token->val);
 			return;
 		}
 	}
@@ -222,7 +224,7 @@ void post_wifi(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve ssid from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve ssid from UCI.\"]}", token->val);
 		return;
 	}
 	strncpy(uci_lookup_str, PSK_UCI_PATH, BUFSIZ);
@@ -233,7 +235,7 @@ void post_wifi(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve psk from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve psk from UCI.\"]}", token->val);
 		return;
 	}
 
@@ -256,7 +258,7 @@ void post_wifi(yajl_val top)
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
+		printf("{\"xsrf\",\"%s\",\"errors\":[\"Unable to retrieve any data from UCI.\"", token->val);
 		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
@@ -271,7 +273,7 @@ void post_wifi(yajl_val top)
 		printf("Content-type: application/json\n\n");
 	}
 
-	printf("{%s", data + 1);
+	printf("{\"xsrf\":\"%s\",%s", token->val, data + 1);
 	if (errlen != BUFSIZ) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {

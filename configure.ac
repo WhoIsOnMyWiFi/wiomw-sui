@@ -40,7 +40,7 @@ AC_CHECK_LIB([polarssl], [sha512])
 # Checks for header files.
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
    [AC_CHECK_HEADERS([fcgi_stdio.h], , AC_MSG_ERROR([FastCGI headers not found]))])
-AC_CHECK_HEADERS([arpa/inet.h shadow.h stddef.h stdint.h stdlib.h string.h syslog.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h shadow.h stddef.h stdint.h stdlib.h string.h sys/ioctl.h sys/socket.h syslog.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -50,8 +50,9 @@ AC_TYPE_UINT32_T
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
+AC_FUNC_STRERROR_R
 #AC_FUNC_STRNLEN
-AC_CHECK_FUNCS([getspnam stpcpy strdup strerror strnlen strtoul])
+AC_CHECK_FUNCS([getspnam memset socket stpcpy strdup strerror strnlen strtoul])
 
 AC_ARG_WITH([release],
 	AC_HELP_STRING([--with-release=NUM],
@@ -65,6 +66,8 @@ AC_DEFINE_UNQUOTED([RELEASE_NUMBER], "${release_number}", [Release number])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 test/Makefile
+		 test/src/Makefile
 		 www-static/Makefile
 		 www-static/css/Makefile
 		 www-static/js/Makefile])
