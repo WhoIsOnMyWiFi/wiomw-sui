@@ -15,7 +15,7 @@
 #define IPADDR_UCI_PATH "network.lan.ipaddr"
 #define NETMASK_UCI_PATH "network.lan.netmask"
 #define LAN_CHANGED_UCI_PATH "sui.changed.lan"
-#define LOCAL_DNS_ENTRY_UCI_PATH "setup.whoisonmywifi.net"
+#define LOCAL_DNS_ENTRY_UCI_PATH "dhcp.easydomain.ip"
 
 #define MAX_IP_LENGTH 32
 

@@ -730,9 +730,9 @@ function api_call_next()
 		api_call('/cgi-bin/sui.cgi?wiomw',
 				undefined,
 				function(json) {
-					g_wiomw_agentkey = json_response.agentkey;
-					g_wiomw_pubtoken = json_response.pubtoken;
-					g_wiomw_privtoken = json_response.privtoken;
+					g_wiomw_agentkey = json.agentkey;
+					g_wiomw_pubtoken = json.pubtoken;
+					g_wiomw_privtoken = json.privtoken;
 				},
 				'Who Is On My WiFi Login Error');
 	} else {
@@ -1116,18 +1116,18 @@ function api_call_next()
 				//if update=ready (and not 500 ok)
 				//send back psalt, phash, version, md5, and size
 				//this then causes the router to start sysupgrade, have them wait 60 seconds
-				//alert(json_response);
-			  	if(json_response.update == "none") {
+				//alert(json);
+			  	if(json.update == "none") {
 					alert("No Updates Available at this time");
 				}
-				if(json_response.update == "available") {
+				if(json.update == "available") {
 					alert("Update is available but is not able to be downloaded");
 				}
-				if(json_response.update == "ready") {
+				if(json.update == "ready") {
 					alert("Update is available and being downloaded to your router");
-					g_firmware_md5 = json_response.md5;
-					g_firmware_size = json_response.size;
-					g_firmware_version = json_response.version;
+					g_firmware_md5 = json.md5;
+					g_firmware_size = json.size;
+					g_firmware_version = json.version;
 					//alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
 					//advmm_install_update_gui();
 					$("#btn_install_update").show();
@@ -1194,8 +1194,8 @@ function api_call_next()
       api_call('/cgi-bin/sui.cgi?version',
 		      undefined,
 		      function(json) {
-		      	if(g_firmware_version != json_response.version) {
-				alert("An Error Occurred Updating to the latest version.  Version: " + json_response.version + " remains on router");
+		      	if(g_firmware_version != json.version) {
+				alert("An Error Occurred Updating to the latest version.  Version: " + json.version + " remains on router");
 			}
 		      },
 		      'Version Check Settings Error');
@@ -1243,18 +1243,18 @@ function api_call_next()
       
       api_call('/cgi-bin/sui.cgi?wan_ip',
 		undefined,
-		function( json_response ) {
-		      	xsrf_update(json_response);
-			if(json_response.dhcp) {
+		function( json ) {
+		      	xsrf_update(json);
+			if(json.dhcp) {
 				$("#wan_dhcp").prop('checked', true);
 			} else {
 				$("#wan_dhcp").prop('checked', false);
 			}
 			
-			$("#wan_ip").val(json_response.ip);
-			$("#wan_netmask").val(json_response.netmask);
-			$("#wan_gateway").val(json_response.gateway);
-			$("#wan_dns").val(json_response.dns[0]);
+			$("#wan_ip").val(json.ip);
+			$("#wan_netmask").val(json.netmask);
+			$("#wan_gateway").val(json.gateway);
+			$("#wan_dns").val(json.dns[0]);
 		},
 		'Manual WAN Network Settings Error');
   }      
