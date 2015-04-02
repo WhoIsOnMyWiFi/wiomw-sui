@@ -15,6 +15,7 @@
 #define IPADDR_UCI_PATH "network.lan.ipaddr"
 #define NETMASK_UCI_PATH "network.lan.netmask"
 #define LAN_CHANGED_UCI_PATH "sui.changed.lan"
+#define LOCAL_DNS_ENTRY_UCI_PATH "setup.whoisonmywifi.net"
 
 #define MAX_IP_LENGTH 32
 
@@ -55,7 +56,16 @@ bool set_lan_ip4(const char* base, const char* netmask)
 		return false;
 	}
 
-	return true;
+	snprintf(uci_lookup_str, BUFSIZ, LOCAL_DNS_ENTRY_UCI_PATH "=%s", base);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| (res = uci_set(ctx, &ptr)) != UCI_OK
+			|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+			|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		/* TODO: syslog */
+		return true;
+	} else {
+		return true;
+	}
 }
 
 /*
@@ -206,6 +216,18 @@ void post_lan_ip(yajl_val top, struct xsrft* token)
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN data to UCI.\"]}", token->val);
 			return;
+		}
+		if (strnlen(ipaddr, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, LOCAL_DNS_ENTRY_UCI_PATH "=%s", ipaddr);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+					|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save IP address for DNS entry to UCI.\"]}", token->val);
+				return;
+			}
 		}
 	}
 
