@@ -33,11 +33,118 @@
   var g_firmware_md5;
   var g_firmware_version;
   var g_firmware_size;
+
+  var g_api_call_queue = new Array();
+  var g_api_call_lock = false;
   
   //The code here can get a little ugly.
   //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
   //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
   //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
+
+  function api_call(url, data, done_cb, error_hdr, error_cb, xsrf_success, xsrf_error)
+  {
+	var entry = {};
+	if (typeof url !== 'undefined') {
+		entry.url = url;
+	} else {
+		entry.url = '/cgi-bin/sui.cgi?version';
+	}
+	if (typeof data !== 'undefined') {
+		entry.data = data;
+	} else {
+		entry.data = {};
+	}
+	if (typeof done_cb !== 'undefined') {
+		entry.done_cb = done_cb;
+	} else {
+		entry.done_cb = function(j) {};
+	}
+	if (typeof error_hdr !== 'undefined') {
+		entry.error_hdr = error_hdr;
+	} else {
+		entry.error_hdr = 'Error during communication with ' + url;
+	}
+	if (typeof error_cb !== 'undefined') {
+		entry.error_cb = error_cb;
+	} else {
+		entry.error_cb = function(j) {};
+	}
+	if (typeof xsrf_success !== 'undefined') {
+		entry.xsrf_success = xsrf_success;
+	} else {
+		entry.xsrf_success = true;
+	}
+	if (typeof xsrf_error !== 'undefined') {
+		entry.xsrf_error = xsrf_error;
+	} else {
+		entry.xsrf_error = true;
+	}
+
+	g_api_call_queue.unshift(entry);
+
+	if (!g_api_call_lock) {
+		g_api_call_lock = true;
+		api_call_next();
+	}
+  }
+
+function api_call_next()
+{
+	if (g_api_call_queue.length == 0) {
+		g_api_call_lock = false;
+	} else {
+		var entry = g_api_call_queue.pop();
+
+		if (g_xsrf != "") {
+			entry.data.xsrf = g_xsrf;
+		} else {
+			entry.data.phash = g_phash;
+			entry.data.psalt = g_psalt;
+		}
+
+		var data = $.toJSON(entry.data);
+
+		$.post(entry.url, data)
+			.done(function(response) {
+				if (entry.xsrf_success) {
+					if ('xsrf' in response && response.xsrf != "") {
+						g_xsrf = response.xsrf;
+					} else if (g_xsrf != "") {
+						alert("Your session has expired. You need to log back in.");
+						location.href="";
+					}
+				}
+ 
+				entry.done_cb(response);
+
+				api_call_next();
+			})
+			.error(function(xhr, ajaxOptions, thrownError) {
+				var response = $.parseJSON(xhr.response);
+
+				if (entry.xsrf_error) {
+					if ('xsrf' in response && response.xsrf != "") {
+						g_xsrf = response.xsrf;
+					} else if (g_xsrf != "") {
+						alert("Your session has expired. You need to log back in.");
+						location.href="";
+					}
+				}
+ 
+				entry.error_cb(response);
+
+				$("#statusText").show().html(entry.error_hdr);
+
+				for (var i = 0; i < response.errors.length; i++) {
+					alert(response.errors[i]);
+				}
+					
+				api_call_next();
+			});
+	}
+			
+}
 
   //************************************
   //Reset Defaults after login/logout
@@ -118,7 +225,7 @@
     var password = $("#password").val();
     var json_data = '{"password":"' + password + '"}';
     
-    $.post("cgi-bin/sui.cgi?password", json_data)
+    $.post("/cgi-bin/sui.cgi?password", json_data)
 	.done(function( json_response ) {		
 		
 		$("#statusText").html("Login Successful").fadeOut(3000);   
@@ -358,16 +465,7 @@
   
   
   }
-
-  function xsrf_update(json_response) {
-	if ('xsrf' in json_response && json_response.xsrf != "") {
-		g_xsrf = json_response.xsrf;
-	} else if (g_xsrf != "") {
-		alert("Your session has expired. You need to log back in.");
-		location.href="";
-	}
-  }
-  
+ 
   function setup_psk_action()
   {
       g_network_psk = $("#psk").val();      
@@ -377,32 +475,7 @@
 	      "psk": g_network_psk
       };      
 
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      
-    $.post("cgi-bin/sui.cgi?wifi", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  //alert("Valid Settings Change" + json_response);
-	  //network variables have been set, but needs to be rebooted to set the new values
-	  setup_wiomw_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Network Settings Error");
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }      
-	});                   
-      
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {setup_wiomw_gui();}, 'Network Settings Error');
   }  
   
   function setup_wiomw_gui()
@@ -469,34 +542,7 @@
 	      "privtoken": privatetoken
       };                  
 
-      if (g_xsrf != "") {
-	      wiomw_creds.xsrf = g_xsrf;
-      } else {
-	      wiomw_creds.psalt = g_psalt;
-	      wiomw_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(wiomw_creds);
-      //alert(json_data);  
-      //alert("Saving Data to router");
-      //$("#statusText").html(json_data);
-     
-    $.post("cgi-bin/sui.cgi?wiomw", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  //alert("WIOMW values saved" + json_response);
-	  setup_reboot_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").show().html("Network Settings Error");    
-	      var json_result = $.parseJSON(xhr.responseText);
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Network Settings Error");
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	      
-	});   
+      api_call('/cgi-bin/sui.cgi?wiomw', wiomw_creds, function(j) {setup_reboot_gui();}, 'Who Is On My WiFi Settings Error');
   }
   
   function setup_reboot_gui()
@@ -533,34 +579,8 @@
   }  
   
   function setup_reboot_action(reboot_reason)
-  {      
-      var reboot_creds = {
-      };      
-
-      if (g_xsrf != "") {
-	      reboot_creds.xsrf = g_xsrf;
-      } else {
-	      reboot_creds.psalt = g_psalt;
-	      reboot_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(reboot_creds);
-      
-    $.post("cgi-bin/sui.cgi?reboot", json_data)
-	.done(function( json_response ) {		
-	    xsrf_update(json_response);
-		
-	    setup_restart_gui(reboot_reason);
-	  
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      $("#statusText").show().html("Reboot Error");
-	      var json_result = $.parseJSON(xhr.responseText);
-	      xsrf_update(json_result);
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	      
-	});               
+  {
+	api_call('/cgi-bin/sui.cgi?reboot', undefined, function(j) {setup_restart_gui(reboot_reason);}, 'Reboot Error', undefined, false);
   }
   
   function setup_restart_gui(reboot_reason)
@@ -691,83 +711,31 @@
       $("#form_main").html(form_main_html);
       $("#statusText").html('');
 
-	if( (g_network_ssid == "") || (g_network_psk == "") )
-	{
-	
-	  var ssid_creds = {
-	  };      
-	  	 	  
-      if (g_xsrf != "") {
-	      ssid_creds.xsrf = g_xsrf;
-      } else {
-	      ssid_creds.psalt = g_psalt;
-	      ssid_creds.phash = g_phash;
-      }
-      
-	  var json_data = $.toJSON(ssid_creds);
-
-	  $.post("cgi-bin/sui.cgi?wifi", json_data)
-	      .done(function( json_response ) {
-	        xsrf_update(json_response);
-		
-		g_network_ssid = json_response.ssid;
-		g_network_psk = json_response.psk;
-		$("#label_ssid").html(g_network_ssid);
-		$("#label_psk").html(g_network_psk);
-		
-	      })
-	      .error(function (xhr, ajaxOptions, thrownError) {
-		    var json_result = $.parseJSON(xhr.responseText);	      
-	  	    xsrf_update(json_result);
-		    $("#statusText").html("Network Settings Error");    
-		    for(var i = 0; i < json_result.errors.length; i++)
-		    {	alert(json_result.errors[i]);		
-		    }	
-	      });          	
-	}
-	else
-	{
+	if( (g_network_ssid == "") || (g_network_psk == "") ) {
+		api_call('/cgi-bin/sui.cgi?wifi',
+				undefined,
+				function(json) {
+					g_network_ssid = json.ssid;
+					g_network_psk = json.psk;
+					$('#label_ssid').html(g_network_ssid);
+					$('#label_psk').html(g_network_psk);
+				},
+				'Network Settings Error');
+	} else {
 	  $("#label_ssid").html(g_network_ssid);
 	  $("#label_psk").html(g_network_psk);	
 	}
 	
-	if(g_wiomw_agentkey == "") 
-	{
-	
-	  var ssid_creds = {
-	  };      
-	  	 	  
-      if (g_xsrf != "") {
-	      ssid_creds.xsrf = g_xsrf;
-      } else {
-	      ssid_creds.psalt = g_psalt;
-	      ssid_creds.phash = g_phash;
-      }
-      
-	  var json_data = $.toJSON(ssid_creds);
-
-	  $.post("cgi-bin/sui.cgi?wiomw", json_data)
-	      .done(function( json_response ) {
-	        xsrf_update(json_response);
-		
-		g_wiomw_agentkey = json_response.agentkey;
-		g_wiomw_pubtoken = json_response.pubtoken;
-		g_wiomw_privtoken = json_response.privtoken;
-		
-		//$("#label_agentkey").html(g_wiomw_agentkey);
-		
-	      })
-	      .error(function (xhr, ajaxOptions, thrownError) {
-		    var json_result = $.parseJSON(xhr.responseText);	      
-	  	    xsrf_update(json_result);
-		    $("#statusText").html("Who Is On My Wifi Login Error");    
-		    for(var i = 0; i < json_result.errors.length; i++)
-		    {	alert(json_result.errors[i]);		
-		    }
-	      });          	
-	}
-	else
-	{
+	if(g_wiomw_agentkey == "") {
+		api_call('/cgi-bin/sui.cgi?wiomw',
+				undefined,
+				function(json) {
+					g_wiomw_agentkey = json_response.agentkey;
+					g_wiomw_pubtoken = json_response.pubtoken;
+					g_wiomw_privtoken = json_response.privtoken;
+				},
+				'Who Is On My WiFi Login Error');
+	} else {
 	  $("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
 	}	
 	
@@ -839,30 +807,7 @@
 	      "psk": g_network_psk
       };      
       
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?wifi", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  mm_reboot_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Wireless Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	
-	});                   
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {mm_reboot_gui();}, 'Wireless Settings Error');
   }
 
   function mm_reboot_gui()
@@ -901,34 +846,7 @@
   
   function mm_reboot_action()
   {      
-      var reboot_creds = {
-      };      
-      
-      if (g_xsrf != "") {
-	      reboot_creds.xsrf = g_xsrf;
-      } else {
-	      reboot_creds.psalt = g_psalt;
-	      reboot_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(reboot_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?reboot", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  //alert("Router Restarting" + json_response);
-	  mm_restart_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Reboot Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});               
+	api_call('/cgi-bin/sui.cgi?reboot', undefined, function(j) {mm_restart_gui();}, 'Reboot Error', undefined, false);
   }
   
   function mm_restart_gui()
@@ -1028,30 +946,7 @@
 	      "psk": g_network_psk
       };      
       
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?wifi", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  mm_reboot_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Wireless Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});                   
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {mm_restart_gui();}, 'Wireless Settings Error');
   }  
   
   
@@ -1139,33 +1034,7 @@
 	      "privtoken": privatetoken
       };                  
       
-      if (g_xsrf != "") {
-	      wiomw_creds.xsrf = g_xsrf;
-      } else {
-	      wiomw_creds.psalt = g_psalt;
-	      wiomw_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(wiomw_creds);
-      //alert(json_data);  
-      //alert("Saving Data to router");
-      //$("#statusText").html(json_data);
-     
-    $.post("cgi-bin/sui.cgi?wiomw", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-		
-	  //alert("WIOMW values saved" + json_response);
-	  mm_reboot_gui();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Who Is On My Wifi Login Error");
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	
-	});   
+      api_call('/cgi-bin/sui.cgi?wiomw', wiomw_creds, function(j) {mm_reboot_gui();}, 'Who Is On My WiFi Login Error');
   }
   
   
@@ -1233,85 +1102,38 @@
         $("#form_main").html(form_main_html);
         $("#btn_install_update").hide();
         
-      var network_creds = {
-      };      
-      
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      
-    $.post("cgi-bin/sui.cgi?version", json_data)
-	.done(function( json_response ) {		
-	      xsrf_update(json_response);
-	      $("#cur_version").html(json_response.version);	  
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Version Check Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});                  
+	api_call('/cgi-bin/sui.cgi?version', undefined, function(json) {$('#cur_version').html(json.version);}, 'Version Check Settings Error');
         
   }
   
   function advmm_check_update_action()
   {
       //this might need to be inside of it's own separate gui...
-      var network_creds = {
-      };      
-      
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      
-    $.post("cgi-bin/sui.cgi?update", json_data)
-	.done(function( json_response ) {		
-	        xsrf_update(json_response);
-		//call with just psalt and phash
-		//returns: version, size, md5, and update (available, ready, or none)		
-		//if update=ready (and not 500 ok)
-		//send back psalt, phash, version, md5, and size
-		//this then causes the router to start sysupgrade, have them wait 60 seconds
-	  //alert(json_response);
-	  if(json_response.update == "none")
-	  {
-	    alert("No Updates Available at this time");
-	  }
-	  if(json_response.update == "available")
-	  {
-	    alert("Update is available but is not able to be downloaded");
-	  }
-	  if(json_response.update == "ready")
-	  {
-	    alert("Update is available and being downloaded to your router");
-	    g_firmware_md5 = json_response.md5;
-	    g_firmware_size = json_response.size;
-	    g_firmware_version = json_response.version;
-	    //alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
-	    //advmm_install_update_gui();
-	    $("#btn_install_update").show();
-	  }
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Update Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	
-	});                   
+	  api_call('/cgi-bin/sui.cgi?update',
+			  undefined,
+			  function(json) {
+			  	//returns: version, size, md5, and update (available, ready, or none)
+				//if update=ready (and not 500 ok)
+				//send back psalt, phash, version, md5, and size
+				//this then causes the router to start sysupgrade, have them wait 60 seconds
+				//alert(json_response);
+			  	if(json_response.update == "none") {
+					alert("No Updates Available at this time");
+				}
+				if(json_response.update == "available") {
+					alert("Update is available but is not able to be downloaded");
+				}
+				if(json_response.update == "ready") {
+					alert("Update is available and being downloaded to your router");
+					g_firmware_md5 = json_response.md5;
+					g_firmware_size = json_response.size;
+					g_firmware_version = json_response.version;
+					//alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
+					//advmm_install_update_gui();
+					$("#btn_install_update").show();
+				}
+			  },
+			  'Update Error');
   }    
   
   
@@ -1325,32 +1147,7 @@
 	      "version": g_firmware_version
       };      
       
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?update", json_data)
-	.done(function( json_response ) {		
-	  xsrf_update(json_response);
-	  advmm_sysupgrade_gui();
-	  //alert("sui.cgi?update with values is done");
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	    alert("sui.cgi?update with values is error");
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").html("Update Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }	
-	});                     
-  
+      api_call('/cgi-bin/sui.cgi?update', network_creds, function(j) {advmm_sysupgrade_gui();}, 'Update Error');
   }
   
   function advmm_sysupgrade_gui()
@@ -1394,35 +1191,14 @@
           </div>	\
         </div>';
         
-	  var network_creds = {
-	  };      
-	  
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-	  var json_data = $.toJSON(network_creds);
-	  
-	$.post("cgi-bin/sui.cgi?version", json_data)
-	    .done(function( json_response ) {		
-	          xsrf_update(json_response);
-		  if(g_firmware_version != json_response.version)
-		  {
-		    alert("An Error Occurred Updating to the latest version.  Version: " + json_response.version + " remains on router");
-		  }
-	    })
-	    .error(function (xhr, ajaxOptions, thrownError) {
-		  var json_result = $.parseJSON(xhr.responseText);	      
-	          xsrf_update(json_result);
-		  $("#statusText").show().html("Version Check Settings Error");    
-		  for(var i = 0; i < json_result.errors.length; i++)
-		  {	alert(json_result.errors[i]);		
-		  }		
-	    });        
-        
+      api_call('/cgi-bin/sui.cgi?version',
+		      undefined,
+		      function(json) {
+		      	if(g_firmware_version != json_response.version) {
+				alert("An Error Occurred Updating to the latest version.  Version: " + json_response.version + " remains on router");
+			}
+		      },
+		      'Version Check Settings Error');
         
 	$("#statusText").show().html(main_html); 
       }, 120000);      
@@ -1465,45 +1241,22 @@
         ';
       $("#form_main").html(form_main_html);
       
-      var network_creds = {
-      };      
-      
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      
-    $.post("cgi-bin/sui.cgi?wan_ip", json_data)
-	.done(function( json_response ) {		
-	        xsrf_update(json_response);
-		if(json_response.dhcp)
-		{
-		  $("#wan_dhcp").prop('checked', true);
-		}
-		else
-		{
-		  $("#wan_dhcp").prop('checked', false);
-		}
-		
-		$("#wan_ip").val(json_response.ip);
-		$("#wan_netmask").val(json_response.netmask);
-		$("#wan_gateway").val(json_response.gateway);
-		$("#wan_dns").val(json_response.dns[0]);
-	  
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Manual WAN Network Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});          
-      
+      api_call('/cgi-bin/sui.cgi?wan_ip',
+		undefined,
+		function( json_response ) {
+		      	xsrf_update(json_response);
+			if(json_response.dhcp) {
+				$("#wan_dhcp").prop('checked', true);
+			} else {
+				$("#wan_dhcp").prop('checked', false);
+			}
+			
+			$("#wan_ip").val(json_response.ip);
+			$("#wan_netmask").val(json_response.netmask);
+			$("#wan_gateway").val(json_response.gateway);
+			$("#wan_dns").val(json_response.dns[0]);
+		},
+		'Manual WAN Network Settings Error');
   }      
 
   function advmm_wan_action()
@@ -1537,30 +1290,8 @@
 	  };
       }
       
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?wan_ip", json_data)
-	.done(function( json_response ) {
-	    xsrf_update(json_response);
-	    mm_reboot_action();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Manual WAN Network Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});       
-  
+      api_call('/cgi-bin/sui.cgi?wan_ip', network_creds, function(j) {mm_reboot_action();}, 'Manual WAN Network Settings Error');
+ 
   }
   
   
@@ -1596,32 +1327,13 @@
         ';
       $("#form_main").html(form_main_html);
       
-      var network_creds = {
-      };      
-      
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      }
-      
-      var json_data = $.toJSON(network_creds);
-      
-    $.post("cgi-bin/sui.cgi?lan_ip", json_data)
-	.done(function( json_response ) {
-	        xsrf_update(json_response);
-		$("#lan_ip").val(json_response.ip);
-		$("#lan_netmask").val(json_response.netmask);	  
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Manual LAN Network Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});     	          
+      api_call('/cgi-bin/sui.cgi?lan_ip',
+		undefined,
+		function(json) {
+		      	$("#lan_ip").val(json.ip);
+			$("#lan_netmask").val(json.netmask);	  
+		},
+		'Manual LAN Network Settings Error');
   }    
   
   function advmm_lan_action()
@@ -1632,31 +1344,8 @@
 	      "ip": new_lan_ip,
 	      "netmask": new_lan_netmask
       };
-      
-      if (g_xsrf != "") {
-	      network_creds.xsrf = g_xsrf;
-      } else {
-	      network_creds.psalt = g_psalt;
-	      network_creds.phash = g_phash;
-      } 
-      
-      var json_data = $.toJSON(network_creds);
-      //alert(json_data);
-      
-    $.post("cgi-bin/sui.cgi?lan_ip", json_data)
-	.done(function( json_response ) {
-	    xsrf_update(json_response);
-	    mm_reboot_action();
-	})
-	.error(function (xhr, ajaxOptions, thrownError) {
-	      var json_result = $.parseJSON(xhr.responseText);	      
-	      xsrf_update(json_result);
-	      $("#statusText").show().html("Manual LAN Network Settings Error");    
-	      for(var i = 0; i < json_result.errors.length; i++)
-	      {	alert(json_result.errors[i]);		
-	      }		
-	});       
-  
+
+      api_call('/cgi-bin/sui.cgi?lan_ip', network_creds, function(j) {mm_reboot_action();}, 'Manual LAN Network Settings Error');
   }
   
   
