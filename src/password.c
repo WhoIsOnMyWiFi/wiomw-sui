@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 #include <polarssl/sha512.h>
 #include <yajl/yajl_tree.h>
@@ -130,6 +131,11 @@ void post_password(yajl_val top)
 		return;
 	}
 
+	if (xsrfc_status == 0) {
+		/* well, something's screwy.... */
+		syslog(LOG_ERR, "Received XSRFC status 0 in response to a null call");
+	}
+
 	char psalt_and_shash[BUFSIZ];
 	char phash[129];
 	if (xsrfc_status <= 0) {
@@ -199,9 +205,9 @@ void post_password(yajl_val top)
 	} else {
 		printf("{\"psalt\":\"%s\",\"phash\":\"%s\"", psalt_and_shash, phash);
 		if (xsrfc_status == 0) {
-			printf(",\"errors\":[\"err1\"]");
+			printf(",\"errors\":[\"The normal login system behaved strangely, but the backup login system worked.\"]");
 		} else {
-			printf(",\"errors\":[\"err2\"]");
+			printf(",\"errors\":[\"The normal login system was down, but the backup login system worked.\"]");
 		}
 	}
 

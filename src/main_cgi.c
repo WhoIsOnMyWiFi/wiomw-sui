@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <yajl/yajl_tree.h>
 
+#include "check.h"
 #include "password.h"
 #include "wifi.h"
 #include "wiomw.h"
@@ -59,6 +60,8 @@ int main()
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");
+			} else if (strcmp(query, "wiomw") == 0) {
+				post_wiomw(top);
 			} else if (strcmp(query, "password") == 0) {
 				post_password(top);
 			} else if (strcmp(query, "version") == 0) {
@@ -70,11 +73,6 @@ int main()
 				struct xsrft token;
 				if (valid_creds(top, &token)) {
 					post_wifi(top, &token);
-				}
-			} else if (strcmp(query, "wiomw") == 0) {
-				struct xsrft token;
-				if (valid_creds(top, &token)) {
-					post_wiomw(top, &token);
 				}
 			} else if (strcmp(query, "reboot") == 0) {
 				struct xsrft token;
@@ -115,8 +113,12 @@ int main()
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");
+			} else if (strcmp(query, "check") == 0) {
+				get_check();
 			} else if (strcmp(query, "mac") == 0) {
 				get_mac();
+			} else if (strcmp(query, "check_reboot") == 0) {
+				get_check_reboot();
 			} else {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");

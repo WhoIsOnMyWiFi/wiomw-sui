@@ -51,7 +51,8 @@ am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
 	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT) \
 	mac.$(OBJEXT) reboot.$(OBJEXT) wan_ip.$(OBJEXT) \
 	lan_ip.$(OBJEXT) update.$(OBJEXT) range_check.$(OBJEXT) \
-	version.$(OBJEXT) xsrfc.$(OBJEXT) urandom.$(OBJEXT)
+	version.$(OBJEXT) xsrfc.$(OBJEXT) urandom.$(OBJEXT) \
+	syslog_syserror.$(OBJEXT) check.$(OBJEXT)
 sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
 am__DEPENDENCIES_1 =
 sui_cgi_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -179,7 +180,9 @@ sui_cgi_SOURCES = main_cgi.c \
 		  range_check.h range_check.c \
 		  version.h version.c \
 		  xsrf.h xsrfc.h xsrfc.c \
-		  urandom.h urandom.c
+		  urandom.h urandom.c \
+		  syslog_syserror.h syslog_syserror.c \
+		  check.h check.c
 
 xsrfd_SOURCES = xsrfd.c \
 		xsrf.h \
@@ -312,6 +315,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/b2h.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lan_ip.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_cgi.Po@am__quote@
