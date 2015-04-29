@@ -17,26 +17,20 @@
 #define CHECK_URL "https://www.whoisonmywifi.net/easteregg.txt"
 #define CHECK_CABLE_COMMAND "cat /sys/class/net/`uci -q get network.wan.ifname`/carrier"
 
+size_t identity_cb(char* ptr, size_t size, size_t nmemb, void* userdata)
+{
+	return size * nmemb;
+}
+
 static bool go_check(bool suppress)
 {
 	CURL* curl_handle = curl_easy_init();
 	char error_buffer[BUFSIZ];
 	long http_code = 0;
-	FILE* devnull = fopen("/dev/null", "w");
-
-	if (devnull == NULL) {
-		syslog_syserror(LOG_ERR, "Unable to check internet connection: Unable to open /dev/null");
-		if (!suppress) {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to check connection to the internet.\"]}");
-		}
-		return false;
-	}
 
 	curl_easy_setopt(curl_handle, CURLOPT_URL, CHECK_URL);
 	curl_easy_setopt(curl_handle, CURLOPT_CAINFO, CA_FILE);
-	curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &devnull);
+	curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &identity_cb);
 	curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, error_buffer);
 
 	if (curl_easy_perform(curl_handle) == 0 && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code) == 0) {
