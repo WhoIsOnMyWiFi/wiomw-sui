@@ -14,7 +14,7 @@
 #include "xsrfc.h"
 
 #define CA_FILE "/etc/ssl/certs/f081611a.0"
-#define CHECK_URL "https://www.whoisonmywifi.net/EasterEgg.txt"
+#define CHECK_URL "https://www.whoisonmywifi.net/easteregg.txt"
 #define CHECK_CABLE_COMMAND "cat /sys/class/net/`uci -q get network.wan.ifname`/carrier"
 
 static bool go_check(bool suppress)

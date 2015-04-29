@@ -192,7 +192,7 @@ function online_login_wrapper(auth_token, passthru_cb, pin_cb, post_login_cb, er
 			if (auth2 != NULL) {
 				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': auth2}))
 				.done(function(response2) {
-					var alleged_xsrf == NULL;
+					var alleged_xsrf = NULL;
 					if ('authtoken' in response2) {
 						alleged_xsrf = pin_cb(response2['authtoken']);
 					}
@@ -289,7 +289,7 @@ function check_connection_action()
 		}
 	})
 	.error(function(xhr, ajaxOptions, thrownError) {
-		var response = $.toJSON(xhr.responseText);
+		var response = $.parseJSON(xhr.responseText);
 		if (!('connected' in response && 'cable_connected' in response)) {
 			error_connection_gui();
 		} else if (response['connected'] === true) {
@@ -312,7 +312,7 @@ function error_connection_gui()
 		+ 'router is connected to the internet. You should try '
 		+ '<a onClick="check_reboot_action();">rebooting the router'
 		+ '</a>.</p>'
-		+ "<p>If that doesn't work, you will need to contact '
+		+ "<p>If that doesn't work, you will need to contact "
 		+ 'support.</p>'
 	);
 }
@@ -358,7 +358,7 @@ function error_mac_gui()
 		'<h1>Unable to get MAC address</h1>'
 		+ '<p>The internet seems to be down, but there was an issue '
 		+ 'getting the MAC address from the router. You should '
-		+ 'contact support.</p>';
+		+ 'contact support.</p>'
 	);
 }
 
@@ -407,7 +407,7 @@ function error_reboot_gui()
 		+ '<a href="check_connection_action();">online login system'
 		+ '</a> at this time, you can always use the '
 		+ '<a href="login_gui();">backup login system</a> instead.'
-		+ '</p>';
+		+ '</p>'
 	);
 }
 
