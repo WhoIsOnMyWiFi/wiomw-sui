@@ -254,11 +254,13 @@ void post_wiomw(yajl_val top)
 		return;
 	}
 
+	const char* dump_creds_yajl_path[] = {"dump_creds", (const char*)0};
 	const char* pubtoken_yajl_path[] = {"pubtoken", (const char*)0};
 	const char* privtoken_yajl_path[] = {"privtoken", (const char*)0};
 	const char* agentkey_yajl_path[] = {"agentkey", (const char*)0};
 	const char* authenticated_yajl_path[] = {"authenticated", (const char*)0};
 	const char* authtoken_yajl_path[] = {"authtoken", (const char*)0};
+	yajl_val dump_creds_yajl = yajl_tree_get(response_yajl, dump_creds_yajl_path, yajl_t_true);
 	yajl_val pubtoken_yajl = yajl_tree_get(response_yajl, pubtoken_yajl_path, yajl_t_string);
 	yajl_val privtoken_yajl = yajl_tree_get(response_yajl, privtoken_yajl_path, yajl_t_string);
 	yajl_val agentkey_yajl = yajl_tree_get(response_yajl, agentkey_yajl_path, yajl_t_string);
@@ -269,6 +271,39 @@ void post_wiomw(yajl_val top)
 	char* agentkey_val = YAJL_GET_STRING(agentkey_yajl);
 	char* authtoken_val = YAJL_GET_STRING(authtoken_yajl);
 	bool changed = false;
+
+	if (dump_creds_yajl != NULL && YAJL_IS_TRUE(dump_creds_yajl)) {
+		strncpy(uci_lookup_str, PUBTOKEN_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != UCI_OK
+					&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to remove old pubtoken from UCI.\"]}");
+			return;
+		}
+		strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != UCI_OK
+					&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to remove old privtoken from UCI.\"]}");
+			return;
+		}
+		strncpy(uci_lookup_str, AGENTKEY_UCI_PATH, BUFSIZ);
+		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+				|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != UCI_OK
+					&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
+						|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"errors\":[\"Unable to remove old agentkey from UCI.\"]}");
+			return;
+		}
+	}
 
 	if (pubtoken_val != NULL && stpncpy(pubtoken, pubtoken_val, BUFSIZ) != pubtoken + BUFSIZ && pubtoken[0] != '\0') {
 		snprintf(uci_lookup_str, BUFSIZ, PUBTOKEN_UCI_PATH "=%s", pubtoken);

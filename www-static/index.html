@@ -23,11 +23,6 @@
   
   var g_internet_connected;
   var g_internet_image_loaded;  
-  var g_wiomw_username;
-  var g_wiomw_password;
-  var g_wiomw_agentkey;
-  var g_wiomw_pubtoken;
-  var g_wiomw_privtoken;
   
   //firmware update specific variables
   var g_firmware_md5;
@@ -106,44 +101,325 @@ function api_call_next()
 		var data = $.toJSON(entry.data);
 
 		$.post(entry.url, data)
-			.done(function(response) {
-				if (entry.xsrf_success) {
-					if ('xsrf' in response && response.xsrf != "") {
-						g_xsrf = response.xsrf;
-					} else if (g_xsrf != "") {
-						alert("Your session has expired. You need to log back in.");
-						location.href="";
-					}
+		.done(function(response) {
+			if (entry.xsrf_success) {
+				if ('xsrf' in response && response.xsrf != "") {
+					g_xsrf = response.xsrf;
+				} else if (g_xsrf != "") {
+					alert("Your session has expired. You need to log back in.");
+					location.href="";
 				}
+			}
  
-				entry.done_cb(response);
+			entry.done_cb(response);
 
-				api_call_next();
-			})
-			.error(function(xhr, ajaxOptions, thrownError) {
-				var response = $.parseJSON(xhr.response);
+			api_call_next();
+		})
+		.error(function(xhr, ajaxOptions, thrownError) {
+			var response = $.parseJSON(xhr.response);
 
-				if (entry.xsrf_error) {
-					if ('xsrf' in response && response.xsrf != "") {
-						g_xsrf = response.xsrf;
-					} else if (g_xsrf != "") {
-						alert("Your session has expired. You need to log back in.");
-						location.href="";
-					}
+			if (entry.xsrf_error) {
+				if ('xsrf' in response && response.xsrf != "") {
+					g_xsrf = response.xsrf;
+				} else if (g_xsrf != "") {
+					alert("Your session has expired. You need to log back in.");
+					location.href="";
 				}
+			}
  
-				entry.error_cb(response);
+			entry.error_cb(response);
 
-				$("#statusText").show().html(entry.error_hdr);
+			$("#statusText").show().html(entry.error_hdr);
 
-				for (var i = 0; i < response.errors.length; i++) {
-					alert(response.errors[i]);
-				}
-					
-				api_call_next();
-			});
+			for (var i = 0; i < response.errors.length; i++) {
+				alert(response.errors[i]);
+			}
+				
+			api_call_next();
+		});
 	}
 			
+}
+
+function online_initial_login_wrapper(auth_token, passthru_cb, pin_cb, error_cb)
+{
+	return online_login_wrapper(auth_token,
+			passthru_cb,
+			pin_cb,
+			function(response) {
+				if ('setup_required' in response && response['setup_required'] == true) {
+					setup_ssid_gui();
+				} else {
+					mainmenu_gui();
+				}
+			},
+			error_cb);
+}
+
+/*
+ * callbacks:
+ *
+ * passthru_cb:
+ * 	takes auth_token strng (R2),
+ * 	sends auth_token (R2) to server,
+ * 	returns auth_token string (R3) on success,
+ * 	returns NULL on failure
+ *
+ * pin_cb:
+ * 	takes auth_token string (R4),
+ * 	gets pin from user and sends pin and auth_token (R4) to server,
+ * 	returns xsrf string on success,
+ * 	returns NULL on failure
+ *
+ * post_login_cb:
+ * 	takes sui wiomw json response,
+ * 	performs whatever action,
+ * 	return value is ignored
+ *
+ * error_cb:
+ * 	takes sui wiomw json response,
+ * 	performs whatever action,
+ * 	returns true if entire page should be reloaded
+ * 	returns false if errors should be alerted like normal
+ *
+ */
+function online_login_wrapper(auth_token, passthru_cb, pin_cb, post_login_cb, error_cb)
+{
+	$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': auth_token}))
+	.done(function(response1) {
+		if ('authtoken' in response1) {
+			var auth2 = passthru_cb(response1['authtoken']);
+			if (auth2 != NULL) {
+				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': auth2}))
+				.done(function(response2) {
+					var alleged_xsrf == NULL;
+					if ('authtoken' in response2) {
+						alleged_xsrf = pin_cb(response2['authtoken']);
+					}
+					if (!('authtoken' in response2 && alleged_xsrf == NULL)) {
+						if ('authtoken' in response2) {
+							$("#statusText").html("Login Successful").fadeOut(3000);   
+							g_xsrf = alleged_xsrf;
+							g_psalt = "";
+							g_phash = "";
+						} else if ('xsrf' in response2) {
+							$("#statusText").html("Login Successful").fadeOut(3000);   
+							g_xsrf = response2['xsrf'];
+							g_psalt = "";
+							g_phash = "";
+						} else {
+							if (response2['errors'] instanceof Array) {
+								response2['errors'].unshift('Router did not behave as expected during second pass of online login process.');
+							} else {
+								response2['errors'] = ['Router did not behave as expected during second pass of online login process.'];
+							}
+				
+							if (error_cb(response2)) {
+								location.href='/';
+							}
+				
+							$("#statusText").show().html('Online Login Error');
+				
+							for (var i = 0; i < response2.errors.length; i++) {
+								alert(response2.errors[i]);
+							}
+						}
+						post_login_cb(response2);
+					}
+				})
+				.error(function(xhr, ajaxOptions, thrownError) {
+					var response = $.parseJSON(xhr.response);
+	
+					if (error_cb(response)) {
+						location.href='/';
+					}
+	
+					$("#statusText").show().html('Online Login Error');
+	
+					for (var i = 0; i < response.errors.length; i++) {
+						alert(response.errors[i]);
+					}
+				});
+			}
+		} else {
+			if (response1['errors'] instanceof Array) {
+				response1['errors'].unshift('Router did not behave as expected during first pass of online login process.');
+			} else {
+				response1['errors'] = ['Router did not behave as expected during first pass of online login process.'];
+			}
+
+			if (error_cb(response1)) {
+				location.href='/';
+			}
+
+			$("#statusText").show().html('Online Login Error');
+
+			for (var i = 0; i < response1.errors.length; i++) {
+				alert(response1.errors[i]);
+			}
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		var response = $.parseJSON(xhr.response);
+
+		if (error_cb(response)) {
+			location.href='/';
+		}
+
+		$("#statusText").show().html('Online Login Error');
+
+		for (var i = 0; i < response.errors.length; i++) {
+			alert(response.errors[i]);
+		}
+	});
+}
+
+function check_connection_action()
+{
+	$.get('/cgi-bin/sui.cgi?check')
+	.done(function(response) {
+		if (!('connected' in response && 'cable_connected' in response)) {
+			error_connection_gui();
+		} else if (response['connected'] === true) {
+			online_login_gui();
+		} else if (response['cable_connected'] === true) {
+			no_connection_action();
+		} else {
+			no_cable_gui();
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		var response = $.toJSON(xhr.responseText);
+		if (!('connected' in response && 'cable_connected' in response)) {
+			error_connection_gui();
+		} else if (response['connected'] === true) {
+			/* TODO online_login_gui() ? */
+			error_connection_gui();
+		} else if (response['cable_connected'] === true) {
+			no_connection_action();
+		} else {
+			no_cable_gui();
+		}
+	});
+}
+
+function error_connection_gui()
+{
+	alert('Unable to check internet connection');
+	$("#form_main").html(
+		'<h1>Unable to check internet connection</h1>'
+		+ '<p>There was an issue while trying to determine if the '
+		+ 'router is connected to the internet. You should try '
+		+ '<a onClick="check_reboot_action();">rebooting the router'
+		+ '</a>.</p>'
+		+ "<p>If that doesn't work, you will need to contact '
+		+ 'support.</p>'
+	);
+}
+
+function no_cable_gui()
+{
+	$("#form_main").html(
+		'<h1>Internet cable is unplugged</h1>'
+		+ '<p>You need to be sure to plug one end of a '
+		+ 'network cable into the blue port on the back '
+		+ 'of your router and the other end of the network '
+		+ 'cable into your modem. Once you are sure the '
+		+ 'network cable is plugged into the right spot on '
+		+ 'both your new router and your modem, click the '
+		+ '"Reboot Router" button below.</p>'
+		+ '<p>Or you could <a onClick="login_gui();">log into the '
+		+ 'router without using your Who Is On My WiFi Online account.'
+		+ '</a></p>'
+		+ '<input type="button" value="Reboot Router" '
+		+ 'onClick="check_reboot_action()" />'
+	);
+}
+
+function no_connection_action()
+{
+	$.get('/cgi-bin/sui.cgi?mac')
+	.done(function(response) {
+		if (!('mac' in response)) {
+			error_mac_gui();
+		} else {
+			no_connection_gui(response['mac']);
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		error_mac_gui();
+	});
+}
+
+function error_mac_gui()
+{
+	alert('Unable to get MAC address');
+	$("#form_main").html(
+		'<h1>Unable to get MAC address</h1>'
+		+ '<p>The internet seems to be down, but there was an issue '
+		+ 'getting the MAC address from the router. You should '
+		+ 'contact support.</p>';
+	);
+}
+
+function no_connection_gui(mac)
+{
+	$("#form_main").html(
+		"<h3>The router can't see the internet. This usually means "
+		+ "you need to contact your internet service provider "
+		+ "(usually your cable company or your land-line phone "
+		+ "company) and tell them your new router's address is:</h3>"
+		+ '<h1>' + mac + '</h1>'
+		+ '<input type="button" value="Reboot Router" '
+		+ 'onClick="check_reboot_action()" />'
+		+ '<br /><br />'
+		+ "<p>If that didn't work, then you may unfortunately need "
+		+ "to change some advanced settings. To get to these advanced "
+		+ 'settings, you will need to '
+		+ '<a onClick="login_gui()">log into the '
+		+ 'router without using your Who Is On My WiFi Online account.'
+		+ '</a></p>'
+	);	
+}
+
+function check_reboot_action()
+{
+	$.get('/cgi-bin/sui.cgi?check_reboot')
+	.done(function(response) {
+		if ('rebooting' in response && response['rebooting'] === true) {
+			setup_restart_gui('inetnet');
+		} else {
+			error_reboot_gui();
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		error_reboot_gui();
+	});
+}
+
+function error_reboot_gui()
+{
+	$("#form_main").html(
+		'<h1>Router reboot requires login</h1>'
+		+ '<p>The router can be rebooted under certain circumstances '
+		+ 'without logging in, but this does not appear to be the '
+		+ "case at this time. If you can't use the "
+		+ '<a href="check_connection_action();">online login system'
+		+ '</a> at this time, you can always use the '
+		+ '<a href="login_gui();">backup login system</a> instead.'
+		+ '</p>';
+	);
+}
+
+function online_login_gui()
+{
+	$("#form_main").html(
+		'<h1>Who Is On My WiFi Online Login</h1>'
+		+ '<iframe src="https://www.whoisonmywifi.net/api/rest/v100/iframe_login.php"></iframe>'
+		+ '<p>Or you could <a onClick="login_gui()">log into the '
+		+ 'router without using a Who Is On My WiFi Online account.'
+		+ '</a></p>'
+	);
 }
 
   //************************************
@@ -162,11 +438,6 @@ function api_call_next()
     
     g_internet_connected = false;
     g_internet_image_loaded = false;
-    g_wiomw_username = "";
-    g_wiomw_password = "";
-    g_wiomw_agentkey = "";
-    g_wiomw_pubtoken = "";
-    g_wiomw_privtoken = "";    
   }
   
   //************************************
@@ -475,75 +746,8 @@ function api_call_next()
 	      "psk": g_network_psk
       };      
 
-      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {setup_wiomw_gui();}, 'Network Settings Error');
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {setup_reboot_gui();}, 'Network Settings Error');
   }  
-  
-  function setup_wiomw_gui()
-  {
-  
-      $("#form_main").html(' \
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <legend>	\
-              Now, enter your Who\'s On My Wifi Online E-mail address and Password:	\
-            </legend>	\
-          </div>	\
-        </div>	 \
-        <div class="row">	\
-          <div class="one-third column">	\
-	    <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
-            <input placeholder="Enter Password Here" type="password" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
-          </div>	\
-          <div class="two-thirds column">	\
-            <input type="button" class="button-primary u-float-left" onClick="setup_wiomw_action();" value="Connect to Online" />	\
-          </div>	\
-        </div>	\
-        <div class="row">	\
-          <div class="twelve columns">	\
-            <span class="instructionText">NOTE: Who\'s On My Wifi Online is where you can easily manage devices, setup alerts, and see historical reports about your WiFi usage.  If you do not currently have a Who\'s On My Wifi Online Account, please <a href="https://www.whoisonmywifi.net/signup.php?router" target="_blank">Signup Now</a>.</span>	\
-          </div>	\
-        </div>	  \
-	');
-      $("#statusText").show().html("");
-  
-  }
-
-  function setup_wiomw_action()
-  {
-      g_wiomw_username = $("#wiomw_email").val();      
-      g_wiomw_password = $("#wiomw_password").val();      
-      g_wiomw_agentkey = "";
-      
-      //Remember, this part is somewhat complicated
-      //You have to call a remote javascript function that checks the server and generates public and private token
-      //the function call exists on the remote www.whoisonmywifi.net/js server and is included in the detect_internet_connection function
-      jsc_token_setup_wiomw_agent(
-	  g_wiomw_username,
-	  g_wiomw_password,
-	  g_wiomw_agentkey,
-	  "1",
-	  save_and_apply_credentials,
-	  bad_wiomw_creds);
-  }    
-  
-  function bad_wiomw_creds(errorString)
-  {
-    alert(errorString);
-  }
-  
-  function save_and_apply_credentials(publictoken, privatetoken, agentkey)
-  {
-      //alert("Valid password");
-      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
-      
-      var wiomw_creds = {
-	      "agentkey": agentkey,
-	      "pubtoken": publictoken,
-	      "privtoken": privatetoken
-      };                  
-
-      api_call('/cgi-bin/sui.cgi?wiomw', wiomw_creds, function(j) {setup_reboot_gui();}, 'Who Is On My WiFi Settings Error');
-  }
   
   function setup_reboot_gui()
   {
@@ -725,19 +929,6 @@ function api_call_next()
 	  $("#label_ssid").html(g_network_ssid);
 	  $("#label_psk").html(g_network_psk);	
 	}
-	
-	if(g_wiomw_agentkey == "") {
-		api_call('/cgi-bin/sui.cgi?wiomw',
-				undefined,
-				function(json) {
-					g_wiomw_agentkey = json.agentkey;
-					g_wiomw_pubtoken = json.pubtoken;
-					g_wiomw_privtoken = json.privtoken;
-				},
-				'Who Is On My WiFi Login Error');
-	} else {
-	  $("#label_agentkey").html(g_wiomw_agentkey + ":" + g_wiomw_pubtoken + ":" + g_wiomw_privtoken );
-	}	
 	
 	if(!g_internet_connected)
 	{
@@ -955,28 +1146,22 @@ function api_call_next()
   {
     if(g_internet_connected)
     {
-
 	$("#form_main").html(' \
 	  <div class="row">	\
 	    <div class="twelve columns">	\
 	      <legend>	\
-		Edit Who\'s On My Wifi Online Login \
+		Edit Who\'s On My Wifi Online Properties \
 	      </legend>	\
 	    </div>	\
 	  </div>	 \
 	  <div class="row">	        \
-	    <div class="one-third column">	\
-	      <input placeholder="Enter E-mail Address Here" type="text" class="u-full-width"  id="wiomw_email" name="wiomw_email">          \
-	      <input placeholder="Enter Password Here" type="password" class="u-full-width"  id="wiomw_password" name="wiomw_password">	            \
-	    </div>	\
-	    <div class="two-thirds column">	\
-	      <input type="button" class="button-primary u-float-left" onClick="mm_wiomw_action();" value="Save Login" />	\
+	    <div class="twelve columns">	\
+		<iframe src="https://www.whoisonmywifi.net/api/rest/v100/iframe_menu.php"></iframe>\
 	    </div>	\
 	  </div>	\
 	  <div class="row">	\
 	    <div class="twelve columns">	\
 	      <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
-	      <br/><span class="instructionText">Note:  This e-mail address and password must match your Who\'s On My Wifi Online e-mail address and password.</span>	\
 	    </div>	\
 	  </div>	  \
 	  ');        
@@ -987,7 +1172,7 @@ function api_call_next()
 	  <div class="row">	\
 	    <div class="twelve columns">	\
 	      <legend>	\
-		Edit Who\'s On My Wifi Online Login \
+		Edit Who\'s On My Wifi Online Properties \
 	      </legend>	\
 	    </div>	\
 	  </div>	 \
@@ -1000,43 +1185,7 @@ function api_call_next()
 	  ');            
     }
   }
-  
-  function mm_wiomw_action()
-  {
-      g_wiomw_username = $("#wiomw_email").val();      
-      g_wiomw_password = $("#wiomw_password").val();      
-      
-      //Remember, this part is somewhat complicated
-      //You have to call a remote javascript function that checks the server and generates public and private token
-      //the function call exists on the remote www.whoisonmywifi.net/js server and is included in the detect_internet_connection function
-      jsc_token_setup_wiomw_agent(
-	  g_wiomw_username,
-	  g_wiomw_password,
-	  g_wiomw_agentkey,
-	  "1",
-	  mm_save_and_apply_credentials,
-	  mm_bad_wiomw_creds);
-  }    
-  
-  function mm_bad_wiomw_creds(errorString)
-  {
-    alert(errorString);
-  }
-  
-  function mm_save_and_apply_credentials(publictoken, privatetoken, agentkey)
-  {
-      //alert("Valid password");
-      //alert(publictoken + ":" + privatetoken + ":" + agentkey);
-      
-      var wiomw_creds = {
-	      "agentkey": agentkey,
-	      "pubtoken": publictoken,
-	      "privtoken": privatetoken
-      };                  
-      
-      api_call('/cgi-bin/sui.cgi?wiomw', wiomw_creds, function(j) {mm_reboot_gui();}, 'Who Is On My WiFi Login Error');
-  }
-  
+ 
   
   function mm_advancedmenu_gui()
   {  
@@ -1350,7 +1499,9 @@ function api_call_next()
   
   
   $(document).ready(function() {
-    login_gui();    
+    /* login_gui();    */
+
+    check_connection_action();
     
     /*
     //causes infinite loop on Safari
