@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <yajl/yajl_tree.h>
 
+#include "check.h"
 #include "password.h"
 #include "wifi.h"
 #include "wiomw.h"
@@ -23,6 +24,8 @@
 #include "wan_ip.h"
 #include "lan_ip.h"
 #include "update.h"
+#include "version.h"
+#include "xsrf.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -57,31 +60,44 @@ int main()
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");
+			} else if (strcmp(query, "wiomw") == 0) {
+				post_wiomw(top);
 			} else if (strcmp(query, "password") == 0) {
 				post_password(top);
-			} else if (strcmp(query, "wifi") == 0) {
-				if (valid_creds(top)) {
-					post_wifi(top);
+			} else if (strcmp(query, "version") == 0) {
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_version(top, &token);
 				}
-			} else if (strcmp(query, "wiomw") == 0) {
-				if (valid_creds(top)) {
-					post_wiomw(top);
+			} else if (strcmp(query, "wifi") == 0) {
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_wifi(top, &token);
 				}
 			} else if (strcmp(query, "reboot") == 0) {
-				if (valid_creds(top)) {
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
 					post_reboot();
 				}
 			} else if (strcmp(query, "wan_ip") == 0) {
-				if (valid_creds(top)) {
-					post_wan_ip(top);
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_wan_ip(top, &token);
 				}
 			} else if (strcmp(query, "lan_ip") == 0) {
-				if (valid_creds(top)) {
-					post_lan_ip(top);
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_lan_ip(top, &token);
+				}
+			} else if (strcmp(query, "update.log") == 0) {
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_update_log(top, &token);
 				}
 			} else if (strcmp(query, "update") == 0) {
-				if (valid_creds(top)) {
-					post_update(top);
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_update(top, &token);
 				}
 			} else {
 				printf("Status: 400 Bad Request\n");
@@ -93,12 +109,16 @@ int main()
 			}
 			free(data);
 		} else if (strcmp(method, "GET") == 0 || strcmp(method, "HEAD") == 0) {
-			if (getenv == NULL) {
+			if (query == NULL) {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"errors\":[\"Query required in URL.\"]}");
+			} else if (strcmp(query, "check") == 0) {
+				get_check();
 			} else if (strcmp(query, "mac") == 0) {
 				get_mac();
+			} else if (strcmp(query, "check_reboot") == 0) {
+				get_check_reboot();
 			} else {
 				printf("Status: 400 Bad Request\n");
 				printf("Content-type: application/json\n\n");

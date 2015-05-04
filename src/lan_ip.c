@@ -1,5 +1,5 @@
 #include <config.h>
-#include "wan_ip.h"
+#include "lan_ip.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -10,10 +10,14 @@
 #include <yajl/yajl_tree.h>
 
 #include "string_helpers.h"
+#include "xsrf.h"
 
 #define IPADDR_UCI_PATH "network.lan.ipaddr"
 #define NETMASK_UCI_PATH "network.lan.netmask"
 #define LAN_CHANGED_UCI_PATH "sui.changed.lan"
+#define LOCAL_DNS_ENTRY_UCI_PATH "dhcp.easydomain.ip"
+
+#define MAX_IP_LENGTH 32
 
 bool set_lan_ip4(const char* base, const char* netmask)
 {
@@ -52,12 +56,24 @@ bool set_lan_ip4(const char* base, const char* netmask)
 		return false;
 	}
 
-	return true;
+	snprintf(uci_lookup_str, BUFSIZ, LOCAL_DNS_ENTRY_UCI_PATH "=%s", base);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+			|| (res = uci_set(ctx, &ptr)) != UCI_OK
+			|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+			|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		/* TODO: syslog */
+		return true;
+	} else {
+		return true;
+	}
 }
 
+/*
+ * returns true if successful and LAN has never been changed
+ */
 bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 {
-	bool changed = false;
+	bool never_changed = true;
 	struct uci_context* ctx;
 	struct uci_ptr ptr;
 	int res = 0;
@@ -69,8 +85,9 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 		*base = 0;
 		*netmask = 0;
 		return false;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		never_changed = (atoi(ptr.o->v.string) != 1);
 	}
-	changed = (atoi(ptr.o->v.string) == 1);
 
 	strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
@@ -96,10 +113,10 @@ bool get_lan_ip4(uint32_t* base, uint32_t* netmask)
 		return false;
 	}
 
-	return changed;
+	return never_changed;
 }
 
-void post_lan_ip(yajl_val top)
+void post_lan_ip(yajl_val top, struct xsrft* token)
 {
 	char errors[BUFSIZ];
 	char* terrors = errors;
@@ -117,12 +134,46 @@ void post_lan_ip(yajl_val top)
 	netmask[0] = '\0';
 	/* TODO: be more forgiving about dhcp:1 and dhcp:"yes" and whatnot? */
 	if (ipaddr_yajl != NULL) {
-		/* TODO: validate */
-		strncpy(ipaddr, YAJL_GET_STRING(ipaddr_yajl), BUFSIZ);
+		char* tstr = YAJL_GET_STRING(ipaddr_yajl);
+		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"The LAN ip address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied LAN IPv4 address.\"]}", token->val);
+				return;
+			}
+			strncpy(ipaddr, tstr, BUFSIZ);
+		}
 	}
 	if (netmask_yajl != NULL) {
-		/* TODO: validate */
-		strncpy(netmask, YAJL_GET_STRING(netmask_yajl), BUFSIZ);
+		char* tstr = YAJL_GET_STRING(netmask_yajl);
+		if (tstr != NULL) {
+			int res = 0;
+			struct in_addr temp;
+			if (tstr[0] == '\0'
+					|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
+					|| ((res = inet_pton(AF_INET, tstr, &temp)) == 0)) {
+				printf("Status: 422 Unprocessable Entity\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"The LAN netmask is currently required to be an IPv4 netmask sent in dotted-quad notation.\"]}", token->val);
+				return;
+			} else if (res != 1) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse supplied LAN IPv4 netmask.\"]}", token->val);
+				return;
+			}
+			strncpy(netmask, tstr, BUFSIZ);
+		}
 	}
 
 	struct uci_context* ctx;
@@ -136,10 +187,10 @@ void post_lan_ip(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, IPADDR_UCI_PATH "=%s", ipaddr);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save LAN IP address to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN IP address to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -147,10 +198,10 @@ void post_lan_ip(yajl_val top)
 			snprintf(uci_lookup_str, BUFSIZ, NETMASK_UCI_PATH "=%s", netmask);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
-					|| (res = uci_save(ctx, ptr.p) != UCI_OK)) {
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
-				printf("{\"errors\":[\"Unable to save LAN netmask to UCI.\"]}");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN netmask to UCI.\"]}", token->val);
 				return;
 			}
 		}
@@ -163,8 +214,20 @@ void post_lan_ip(yajl_val top)
 				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to save LAN data to UCI.\"]}");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN data to UCI.\"]}", token->val);
 			return;
+		}
+		if (strnlen(ipaddr, BUFSIZ) != 0) {
+			snprintf(uci_lookup_str, BUFSIZ, LOCAL_DNS_ENTRY_UCI_PATH "=%s", ipaddr);
+			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
+					|| (res = uci_set(ctx, &ptr)) != UCI_OK
+					|| (res = uci_save(ctx, ptr.p)) != UCI_OK
+					|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+				printf("Status: 500 Internal Server Error\n");
+				printf("Content-type: application/json\n\n");
+				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save IP address for DNS entry to UCI.\"]}", token->val);
+				return;
+			}
 		}
 	}
 
@@ -179,7 +242,7 @@ void post_lan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve LAN IP address from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve LAN IP address from UCI.\"]}", token->val);
 		return;
 	}
 	strncpy(uci_lookup_str, NETMASK_UCI_PATH, BUFSIZ);
@@ -190,7 +253,7 @@ void post_lan_ip(yajl_val top)
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve LAN netmask from UCI.\"]}");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve LAN netmask from UCI.\"]}", token->val);
 		return;
 	}
 
@@ -209,7 +272,7 @@ void post_lan_ip(yajl_val top)
 	if (datalen == BUFSIZ) {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"errors\":[\"Unable to retrieve any data from UCI.\"");
+		printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve any data from UCI.\"", token->val);
 		if (errlen != BUFSIZ) {
 			printf(",%s]}", errors + 1);
 		} else {
@@ -224,7 +287,7 @@ void post_lan_ip(yajl_val top)
 		printf("Content-type: application/json\n\n");
 	}
 
-	printf("{%s", data + 1);
+	printf("{\"xsrf\":\"%s\",%s", token->val, data + 1);
 	if (errlen != BUFSIZ) {
 		printf(",\"errors\":[%s]}", errors + 1);
 	} else {

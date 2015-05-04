@@ -14,7 +14,6 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -32,9 +31,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = sui.cgi$(EXEEXT)
-sbin_PROGRAMS = xsrfd$(EXEEXT)
-subdir = src
+check_PROGRAMS = xsrfc_behavior.out$(EXEEXT)
+subdir = test/src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libcurl.m4 \
@@ -45,21 +43,10 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"
-PROGRAMS = $(bin_PROGRAMS) $(sbin_PROGRAMS)
-am_sui_cgi_OBJECTS = main_cgi.$(OBJEXT) password.$(OBJEXT) \
-	string_helpers.$(OBJEXT) wifi.$(OBJEXT) wiomw.$(OBJEXT) \
-	mac.$(OBJEXT) reboot.$(OBJEXT) wan_ip.$(OBJEXT) \
-	lan_ip.$(OBJEXT) update.$(OBJEXT) range_check.$(OBJEXT) \
-	version.$(OBJEXT) xsrfc.$(OBJEXT) urandom.$(OBJEXT) \
-	syslog_syserror.$(OBJEXT) check.$(OBJEXT)
-sui_cgi_OBJECTS = $(am_sui_cgi_OBJECTS)
-am__DEPENDENCIES_1 =
-sui_cgi_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_xsrfd_OBJECTS = xsrfd.$(OBJEXT) b2h.$(OBJEXT) \
-	syslog_syserror.$(OBJEXT) urandom.$(OBJEXT)
-xsrfd_OBJECTS = $(am_xsrfd_OBJECTS)
-xsrfd_LDADD = $(LDADD)
+am_xsrfc_behavior_out_OBJECTS = xsrfc_behavior.$(OBJEXT) b2h.$(OBJEXT) \
+	xsrfc.$(OBJEXT)
+xsrfc_behavior_out_OBJECTS = $(am_xsrfc_behavior_out_OBJECTS)
+xsrfc_behavior_out_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -68,8 +55,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(sui_cgi_SOURCES) $(xsrfd_SOURCES)
-DIST_SOURCES = $(sui_cgi_SOURCES) $(xsrfd_SOURCES)
+SOURCES = $(xsrfc_behavior_out_SOURCES)
+DIST_SOURCES = $(xsrfc_behavior_out_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -167,31 +154,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-sui_cgi_SOURCES = main_cgi.c \
-		  password.h password.c \
-		  string_helpers.h string_helpers.c \
-		  wifi.h wifi.c \
-		  wiomw.h wiomw.c \
-		  mac.h mac.c \
-		  reboot.h reboot.c \
-		  wan_ip.h wan_ip.c \
-		  lan_ip.h lan_ip.c \
-		  update.h update.c \
-		  range_check.h range_check.c \
-		  version.h version.c \
-		  xsrf.h xsrfc.h xsrfc.c \
-		  urandom.h urandom.c \
-		  syslog_syserror.h syslog_syserror.c \
-		  check.h check.c
+AM_CFLAGS = -I../../src --coverage 
+xsrfc_behavior_out_SOURCES = xsrfc_behavior.c \
+			     ../../src/b2h.h \
+			     ../../src/b2h.c \
+			     ../../src/xsrf.h \
+			     ../../src/xsrfc.h \
+			     ../../src/xsrfc.c
 
-xsrfd_SOURCES = xsrfd.c \
-		xsrf.h \
-		b2h.h b2h.c \
-		syslog_syserror.h syslog_syserror.c \
-		urandom.h urandom.c
-
-AM_CFLAGS = ${CURL_CFLAGS}
-sui_cgi_LDADD = ${CURL_LIBS}
 CLEANFILES = *.gcda *.gcno *.gcov
 all: all-am
 
@@ -206,9 +176,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu test/src/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/Makefile
+	  $(AUTOMAKE) --gnu test/src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -227,86 +197,12 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-binPROGRAMS: $(bin_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p; \
-	  then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	    } \
-	; done
 
-uninstall-binPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' `; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(bindir)" && rm -f $$files
-
-clean-binPROGRAMS:
-	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-install-sbinPROGRAMS: $(sbin_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
-	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p; \
-	  then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(sbindir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(sbindir)$$dir" || exit $$?; \
-	    } \
-	; done
-
-uninstall-sbinPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' `; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(sbindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(sbindir)" && rm -f $$files
-
-clean-sbinPROGRAMS:
-	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
-sui.cgi$(EXEEXT): $(sui_cgi_OBJECTS) $(sui_cgi_DEPENDENCIES) $(EXTRA_sui_cgi_DEPENDENCIES) 
-	@rm -f sui.cgi$(EXEEXT)
-	$(LINK) $(sui_cgi_OBJECTS) $(sui_cgi_LDADD) $(LIBS)
-xsrfd$(EXEEXT): $(xsrfd_OBJECTS) $(xsrfd_DEPENDENCIES) $(EXTRA_xsrfd_DEPENDENCIES) 
-	@rm -f xsrfd$(EXEEXT)
-	$(LINK) $(xsrfd_OBJECTS) $(xsrfd_LDADD) $(LIBS)
+clean-checkPROGRAMS:
+	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
+xsrfc_behavior.out$(EXEEXT): $(xsrfc_behavior_out_OBJECTS) $(xsrfc_behavior_out_DEPENDENCIES) $(EXTRA_xsrfc_behavior_out_DEPENDENCIES) 
+	@rm -f xsrfc_behavior.out$(EXEEXT)
+	$(LINK) $(xsrfc_behavior_out_OBJECTS) $(xsrfc_behavior_out_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -315,23 +211,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/b2h.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lan_ip.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mac.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_cgi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/password.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/range_check.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reboot.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/string_helpers.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syslog_syserror.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/update.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/urandom.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/version.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wan_ip.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wifi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/wiomw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xsrfc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xsrfd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xsrfc_behavior.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -346,6 +227,34 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+b2h.o: ../../src/b2h.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT b2h.o -MD -MP -MF $(DEPDIR)/b2h.Tpo -c -o b2h.o `test -f '../../src/b2h.c' || echo '$(srcdir)/'`../../src/b2h.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/b2h.Tpo $(DEPDIR)/b2h.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/b2h.c' object='b2h.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o b2h.o `test -f '../../src/b2h.c' || echo '$(srcdir)/'`../../src/b2h.c
+
+b2h.obj: ../../src/b2h.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT b2h.obj -MD -MP -MF $(DEPDIR)/b2h.Tpo -c -o b2h.obj `if test -f '../../src/b2h.c'; then $(CYGPATH_W) '../../src/b2h.c'; else $(CYGPATH_W) '$(srcdir)/../../src/b2h.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/b2h.Tpo $(DEPDIR)/b2h.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/b2h.c' object='b2h.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o b2h.obj `if test -f '../../src/b2h.c'; then $(CYGPATH_W) '../../src/b2h.c'; else $(CYGPATH_W) '$(srcdir)/../../src/b2h.c'; fi`
+
+xsrfc.o: ../../src/xsrfc.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xsrfc.o -MD -MP -MF $(DEPDIR)/xsrfc.Tpo -c -o xsrfc.o `test -f '../../src/xsrfc.c' || echo '$(srcdir)/'`../../src/xsrfc.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/xsrfc.Tpo $(DEPDIR)/xsrfc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/xsrfc.c' object='xsrfc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xsrfc.o `test -f '../../src/xsrfc.c' || echo '$(srcdir)/'`../../src/xsrfc.c
+
+xsrfc.obj: ../../src/xsrfc.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xsrfc.obj -MD -MP -MF $(DEPDIR)/xsrfc.Tpo -c -o xsrfc.obj `if test -f '../../src/xsrfc.c'; then $(CYGPATH_W) '../../src/xsrfc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/xsrfc.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/xsrfc.Tpo $(DEPDIR)/xsrfc.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../src/xsrfc.c' object='xsrfc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xsrfc.obj `if test -f '../../src/xsrfc.c'; then $(CYGPATH_W) '../../src/xsrfc.c'; else $(CYGPATH_W) '$(srcdir)/../../src/xsrfc.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -430,12 +339,10 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"; do \
-	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
-	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -469,8 +376,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-sbinPROGRAMS \
-	mostlyclean-am
+clean-am: clean-checkPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -496,7 +402,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-sbinPROGRAMS
+install-exec-am:
 
 install-html: install-html-am
 
@@ -535,23 +441,22 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-sbinPROGRAMS
+uninstall-am:
 
-.MAKE: install-am install-strip
+.MAKE: check-am install-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic clean-sbinPROGRAMS ctags distclean \
+.PHONY: CTAGS GTAGS all all-am check check-am clean \
+	clean-checkPROGRAMS clean-generic ctags distclean \
 	distclean-compile distclean-generic distclean-tags distdir dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-sbinPROGRAMS install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS uninstall-sbinPROGRAMS
+	uninstall-am
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

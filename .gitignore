@@ -6,6 +6,7 @@
 /config.status
 /configure.scan
 /src/*.cgi
+/src/xsrfd
 *~
 *.o
 stamp-h*
