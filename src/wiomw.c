@@ -366,7 +366,7 @@ void post_wiomw(yajl_val top)
 		setup = true;
 	}
 
-	if (authtoken_val != NULL && stpncpy(authtoken, authtoken_val, BUFSIZ) != authtoken + BUFSIZ) {
+	if (authtoken_val != NULL && stpncpy(authtoken, authtoken_val, BUFSIZ) != authtoken + BUFSIZ && authtoken[0] != '\0') {
 		printf("Status: 200 OK\n");
 		printf("Content-type: application/json\n\n");
 		if (setup) {

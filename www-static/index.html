@@ -165,7 +165,7 @@ function start_online_receiver() {
 				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': data.authtoken}))
 				.done(function(response) {
 					if ('authtoken' in response && response.authtoken != '') {
-						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://www.whoisonmywifi.net', $('#iframe'));
+						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					} else if ('xsrf' in response && response.xsrf != '') {
 						$("#statusText").html("Login Successful").fadeOut(3000);
 	
@@ -174,7 +174,7 @@ function start_online_receiver() {
 						g_phash = '';
 	
 						if (g_inmenu) {
-							$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe'));
+							$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 						} else {
 							if ('setup_required' in response && response['setup_required'] == true) {
 								setup_ssid_gui();
@@ -189,7 +189,7 @@ function start_online_receiver() {
 							alert(response.errors[i]);
 						}
 	
-						$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe'));
+						$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					} else {
 						$("#statusText").show().html('Online Login Error');
 	
@@ -199,7 +199,7 @@ function start_online_receiver() {
 							alert(errors[i]);
 						}
 	
-						$.postMessage($.toJSON({'errors': errors}), 'https://www.whoisonmywifi.net', $('#iframe'));
+						$.postMessage($.toJSON({'errors': errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					}
 				})
 				.error(function(xhr, ajaxOptions, thrownError) {
@@ -209,7 +209,7 @@ function start_online_receiver() {
 						alert(response.errors[i]);
 					}
 	
-					$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe'));
+					$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				});
 			} else if ('xsrf' in data && data.xsrf != '') {
 				$("#statusText").html("Login Successful").fadeOut(3000);
@@ -219,7 +219,7 @@ function start_online_receiver() {
 				g_phash = '';
 	
 				if (g_inmenu) {
-					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe'));
+					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				} else {
 					if ('setup_required' in response && response['setup_required'] == true) {
 						setup_ssid_gui();
