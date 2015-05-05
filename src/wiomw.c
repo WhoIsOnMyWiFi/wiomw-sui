@@ -18,8 +18,9 @@
 #define PRIVTOKEN_UCI_PATH "wiomw.agent.privtoken"
 #define AGENTKEY_PLACEHOLDER "openwrt-placeholder"
 #define PIN_UCI_PATH "sui.system.pin"
+#define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
 
-#define WIOMW_AUTH_URL "https://www.whoisonmywifi.net/api/v100/rest/router_auth"
+#define WIOMW_AUTH_URL "https://www.whoisonmywifi.net//api/v100/rest/jss_msauth_router"
 #define CA_FILE "/etc/ssl/certs/f081611a.0"
 
 #define MAX_AUTHTOKEN_LENGTH 1024
@@ -353,10 +354,26 @@ void post_wiomw(yajl_val top)
 		}
 	}
 
+	bool setup = false;
+
+	strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH, BUFSIZ);
+	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
+		printf("Status: 500 Internal Server Error\n");
+		printf("Content-type: application/json\n\n");
+		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
+		return;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
+		setup = true;
+	}
+
 	if (authtoken_val != NULL && stpncpy(authtoken, authtoken_val, BUFSIZ) != authtoken + BUFSIZ) {
 		printf("Status: 200 OK\n");
 		printf("Content-type: application/json\n\n");
-		printf("{\"authtoken\":\"%s\"}", authtoken);
+		if (setup) {
+			printf("{\"authtoken\":\"%s\",\"setup_required\":false}", authtoken);
+		} else {
+			printf("{\"authtoken\":\"%s\",\"setup_required\":true}", authtoken);
+		}
 		return;
 	} else if (authenticated_yajl != NULL && YAJL_IS_TRUE(authenticated_yajl)) {
 		int xsrfc_status = -1;
@@ -369,7 +386,11 @@ void post_wiomw(yajl_val top)
 		} else {
 			printf("Status: 200 OK\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"xsrf\":\"%s\"}", token.val);
+			if (setup) {
+				printf("{\"xsrf\":\"%s\",\"setup_required\":false}", token.val);
+			} else {
+				printf("{\"xsrf\":\"%s\",\"setup_required\":true}", token.val);
+			}
 			return;
 		}
 	} else {

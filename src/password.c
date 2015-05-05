@@ -22,7 +22,6 @@
 #define CRED_RANDOM_DATA_LEN 20
 
 #define WIFI_CHANGED_UCI_PATH "sui.changed.wifi"
-#define WIOMW_CHANGED_UCI_PATH "sui.changed.wiomw"
 
 #define PARTIAL_PASSWD_CMD "passwd >/dev/null; echo $? > "
 
@@ -186,15 +185,7 @@ void post_password(yajl_val top)
 		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
 		return;
 	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-		strncpy(uci_lookup_str, WIOMW_CHANGED_UCI_PATH, BUFSIZ);
-		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"errors\":[\"Unable to determine setup status.\"]}");
-			return;
-		} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-			setup = true;
-		}
+		setup = true;
 	}
 
 	printf("Status: 200 OK\n");
