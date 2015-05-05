@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
   <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
+  <script type="text/javascript" src="js/jquery.browser-0.0.7.min.js">;</script>
+  <script type="text/javascript" src="js/jquery.ba-postmessage-0.5.min.js">;</script>
   <script type="text/javascript" src="js/spin.min.js">;</script>  
   <script type="text/javascript">
   
@@ -20,6 +22,8 @@
   //other global multi-page variables
   var g_network_ssid;
   var g_network_psk;
+
+  var g_inmenu = false;
   
   var g_internet_connected;
   var g_internet_image_loaded;  
@@ -141,137 +145,97 @@ function api_call_next()
 			
 }
 
-function online_initial_login_wrapper(auth_token, passthru_cb, pin_cb, error_cb)
-{
-	return online_login_wrapper(auth_token,
-			passthru_cb,
-			pin_cb,
-			function(response) {
-				if ('setup_required' in response && response['setup_required'] == true) {
-					setup_ssid_gui();
-				} else {
-					mainmenu_gui();
+function start_online_receiver() {
+	$.receiveMessage(function(e) {
+		if (e.origin !== 'https://www.whoisonmywifi.net') {
+			alert('Bad message domain');
+		} else if (e.data != '') {
+			var data = $.parseJSON(e.data);
+			if ('errors' in data && data.errors.length != 0) {
+				$("#statusText").show().html('Online Login Error');
+	
+				for (var i = 0; i < e.errors.length; i++) {
+					alert(e.errors[i]);
 				}
-			},
-			error_cb);
-}
-
-/*
- * callbacks:
- *
- * passthru_cb:
- * 	takes auth_token strng (R2),
- * 	sends auth_token (R2) to server,
- * 	returns auth_token string (R3) on success,
- * 	returns NULL on failure
- *
- * pin_cb:
- * 	takes auth_token string (R4),
- * 	gets pin from user and sends pin and auth_token (R4) to server,
- * 	returns xsrf string on success,
- * 	returns NULL on failure
- *
- * post_login_cb:
- * 	takes sui wiomw json response,
- * 	performs whatever action,
- * 	return value is ignored
- *
- * error_cb:
- * 	takes sui wiomw json response,
- * 	performs whatever action,
- * 	returns true if entire page should be reloaded
- * 	returns false if errors should be alerted like normal
- *
- */
-function online_login_wrapper(auth_token, passthru_cb, pin_cb, post_login_cb, error_cb)
-{
-	$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': auth_token}))
-	.done(function(response1) {
-		if ('authtoken' in response1) {
-			var auth2 = passthru_cb(response1['authtoken']);
-			if (auth2 != NULL) {
-				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': auth2}))
-				.done(function(response2) {
-					var alleged_xsrf = NULL;
-					if ('authtoken' in response2) {
-						alleged_xsrf = pin_cb(response2['authtoken']);
-					}
-					if (!('authtoken' in response2 && alleged_xsrf == NULL)) {
-						if ('authtoken' in response2) {
-							$("#statusText").html("Login Successful").fadeOut(3000);   
-							g_xsrf = alleged_xsrf;
-							g_psalt = "";
-							g_phash = "";
-						} else if ('xsrf' in response2) {
-							$("#statusText").html("Login Successful").fadeOut(3000);   
-							g_xsrf = response2['xsrf'];
-							g_psalt = "";
-							g_phash = "";
+	
+				if ('reset' in data && data.reset === true) {
+					location.href = '/';
+				}
+			} else if ('authtoken' in data && data.authtoken != '') {
+				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': data.authtoken}))
+				.done(function(response) {
+					if ('authtoken' in response && response.authtoken != '') {
+						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					} else if ('xsrf' in response && response.xsrf != '') {
+						$("#statusText").html("Login Successful").fadeOut(3000);
+	
+						g_xsrf = response.xsrf;
+						g_psalt = '';
+						g_phash = '';
+	
+						if (g_inmenu) {
+							$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 						} else {
-							if (response2['errors'] instanceof Array) {
-								response2['errors'].unshift('Router did not behave as expected during second pass of online login process.');
+							if ('setup_required' in response && response['setup_required'] == true) {
+								setup_ssid_gui();
 							} else {
-								response2['errors'] = ['Router did not behave as expected during second pass of online login process.'];
-							}
-				
-							if (error_cb(response2)) {
-								location.href='/';
-							}
-				
-							$("#statusText").show().html('Online Login Error');
-				
-							for (var i = 0; i < response2.errors.length; i++) {
-								alert(response2.errors[i]);
+								mainmenu_gui();
 							}
 						}
-						post_login_cb(response2);
+					} else if ('errors' in response && response.errors.length != 0) {
+						$("#statusText").show().html('Online Login Error');
+	
+						for (var i = 0; i < response.errors.length; i++) {
+							alert(response.errors[i]);
+						}
+	
+						$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					} else {
+						$("#statusText").show().html('Online Login Error');
+	
+						var errors = ['Unexpected response from router during online login.'];
+	
+						for (var i = 0; i < errors.length; i++) {
+							alert(errors[i]);
+						}
+	
+						$.postMessage($.toJSON({'errors': errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					}
 				})
 				.error(function(xhr, ajaxOptions, thrownError) {
-					var response = $.parseJSON(xhr.response);
-	
-					if (error_cb(response)) {
-						location.href='/';
-					}
-	
 					$("#statusText").show().html('Online Login Error');
 	
 					for (var i = 0; i < response.errors.length; i++) {
 						alert(response.errors[i]);
 					}
+	
+					$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				});
-			}
-		} else {
-			if (response1['errors'] instanceof Array) {
-				response1['errors'].unshift('Router did not behave as expected during first pass of online login process.');
-			} else {
-				response1['errors'] = ['Router did not behave as expected during first pass of online login process.'];
-			}
-
-			if (error_cb(response1)) {
-				location.href='/';
-			}
-
-			$("#statusText").show().html('Online Login Error');
-
-			for (var i = 0; i < response1.errors.length; i++) {
-				alert(response1.errors[i]);
+			} else if ('xsrf' in data && data.xsrf != '') {
+				$("#statusText").html("Login Successful").fadeOut(3000);
+	
+				g_xsrf = response.xsrf;
+				g_psalt = '';
+				g_phash = '';
+	
+				if (g_inmenu) {
+					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+				} else {
+					if ('setup_required' in response && response['setup_required'] == true) {
+						setup_ssid_gui();
+					} else {
+						mainmenu_gui();
+					}
+				}
+			} else if ('reset' in data && data.reset === true) {
+				$("#statusText").show().html('Online Login Error');
+	
+				alert('Reloading page at request of login system...');
+	
+				location.href = '/';
 			}
 		}
-	})
-	.error(function(xhr, ajaxOptions, thrownError) {
-		var response = $.parseJSON(xhr.response);
-
-		if (error_cb(response)) {
-			location.href='/';
-		}
-
-		$("#statusText").show().html('Online Login Error');
-
-		for (var i = 0; i < response.errors.length; i++) {
-			alert(response.errors[i]);
-		}
-	});
+	}, 'https://www.whoisonmywifi.net');
 }
 
 function check_connection_action()
@@ -281,6 +245,7 @@ function check_connection_action()
 		if (!('connected' in response && 'cable_connected' in response)) {
 			error_connection_gui();
 		} else if (response['connected'] === true) {
+			start_online_receiver();
 			online_login_gui();
 		} else if (response['cable_connected'] === true) {
 			no_connection_action();
@@ -293,6 +258,7 @@ function check_connection_action()
 		if (!('connected' in response && 'cable_connected' in response)) {
 			error_connection_gui();
 		} else if (response['connected'] === true) {
+			/*start_online_receiver();*/
 			/* TODO online_login_gui() ? */
 			error_connection_gui();
 		} else if (response['cable_connected'] === true) {
@@ -415,7 +381,7 @@ function online_login_gui()
 {
 	$("#form_main").html(
 		'<h1>Who Is On My WiFi Online Login</h1>'
-		+ '<iframe src="https://www.whoisonmywifi.net/api/rest/v100/iframe_login.php"></iframe>'
+		+ '<iframe id="iframe" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_login.php"></iframe>'
 		+ '<p>Or you could <a onClick="login_gui()">log into the '
 		+ 'router without using a Who Is On My WiFi Online account.'
 		+ '</a></p>'
@@ -438,6 +404,8 @@ function online_login_gui()
     
     g_internet_connected = false;
     g_internet_image_loaded = false;
+
+    g_inmenu = false;
   }
   
   //************************************
@@ -881,6 +849,7 @@ function online_login_gui()
   function mainmenu_gui()
   {
       //$("#h1msg").html('Router Configuration');
+	  g_inmenu = true;
       
       
       var form_main_html = '	\
@@ -1156,7 +1125,7 @@ function online_login_gui()
 	  </div>	 \
 	  <div class="row">	        \
 	    <div class="twelve columns">	\
-		<iframe src="https://www.whoisonmywifi.net/api/rest/v100/iframe_menu.php"></iframe>\
+		<iframe id="iframe" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_menu.php"></iframe>\
 	    </div>	\
 	  </div>	\
 	  <div class="row">	\
