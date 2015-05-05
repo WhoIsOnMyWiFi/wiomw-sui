@@ -190,7 +190,7 @@ void post_wiomw(yajl_val top)
 		printf("{\"errors\":[\"Unable to retrieve public token from UCI.\"]}");
 		return;
 	}
-	if (pubtoken != NULL) {
+	if (pubtoken[0] != '\0') {
 		strncpy(uci_lookup_str, PRIVTOKEN_UCI_PATH, BUFSIZ);
 		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
 				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
@@ -204,7 +204,7 @@ void post_wiomw(yajl_val top)
 			return;
 		}
 
-		if (privtoken == NULL) {
+		if (privtoken[0] == '\0') {
 			int xsrfc_status = -1;
 			strncpy(uci_lookup_str, PIN_UCI_PATH, BUFSIZ);
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
@@ -231,9 +231,9 @@ void post_wiomw(yajl_val top)
 
 	char data[BUFSIZ];
 
-	if (pubtoken == NULL) {
+	if (pubtoken[0] == '\0') {
 		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\"}", authtoken);
-	} else if (privtoken == NULL) {
+	} else if (privtoken[0] == '\0') {
 		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\",\"pubtoken\":\"%s\",\"agentkey\":\"%s\",\"pin\":\"%s\",\"xsrf\":\"%s\"}", authtoken, pubtoken, agentkey, pin, token.val);
 	} else {
 		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\",\"pubtoken\":\"%s\",\"privtoken\":\"%s\",\"agentkey\":\"%s\"}", authtoken, pubtoken, privtoken, agentkey);
@@ -255,7 +255,7 @@ void post_wiomw(yajl_val top)
 		return;
 	}
 
-	const char* dump_creds_yajl_path[] = {"dump_creds", (const char*)0};
+	const char* dump_creds_yajl_path[] = {"dumpcreds", (const char*)0};
 	const char* pubtoken_yajl_path[] = {"pubtoken", (const char*)0};
 	const char* privtoken_yajl_path[] = {"privtoken", (const char*)0};
 	const char* agentkey_yajl_path[] = {"agentkey", (const char*)0};
