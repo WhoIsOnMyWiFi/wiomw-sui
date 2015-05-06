@@ -355,7 +355,7 @@ void post_wiomw(yajl_val top)
 		}
 	}
 
-	bool setup = false;
+	bool has_been_setup = false;
 
 	strncpy(uci_lookup_str, WIFI_CHANGED_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK) {
@@ -363,20 +363,11 @@ void post_wiomw(yajl_val top)
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
 		return;
-	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0) {
-		setup = true;
+	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+		has_been_setup = true;
 	}
 
-	if (authtoken_val != NULL && stpncpy(authtoken, authtoken_val, BUFSIZ) != authtoken + BUFSIZ && authtoken[0] != '\0') {
-		printf("Status: 200 OK\n");
-		printf("Content-type: application/json\n\n");
-		if (setup) {
-			printf("{\"authtoken\":\"%s\",\"setup_required\":false}", authtoken);
-		} else {
-			printf("{\"authtoken\":\"%s\",\"setup_required\":true}", authtoken);
-		}
-		return;
-	} else if (authenticated_yajl != NULL && YAJL_IS_TRUE(authenticated_yajl)) {
+	if (authenticated_yajl != NULL && YAJL_IS_TRUE(authenticated_yajl)) {
 		int xsrfc_status = -1;
 		token.val[0] = (char)0x00;
 		if ((xsrfc_status = xsrfc(&token)) <= 0) {
@@ -387,13 +378,22 @@ void post_wiomw(yajl_val top)
 		} else {
 			printf("Status: 200 OK\n");
 			printf("Content-type: application/json\n\n");
-			if (setup) {
+			if (has_been_setup) {
 				printf("{\"xsrf\":\"%s\",\"setup_required\":false}", token.val);
 			} else {
 				printf("{\"xsrf\":\"%s\",\"setup_required\":true}", token.val);
 			}
 			return;
 		}
+	} else if (authtoken_val != NULL && stpncpy(authtoken, authtoken_val, BUFSIZ) != authtoken + BUFSIZ && authtoken[0] != '\0') {
+		printf("Status: 200 OK\n");
+		printf("Content-type: application/json\n\n");
+		if (has_been_setup) {
+			printf("{\"authtoken\":\"%s\",\"setup_required\":false}", authtoken);
+		} else {
+			printf("{\"authtoken\":\"%s\",\"setup_required\":true}", authtoken);
+		}
+		return;
 	} else {
 		printf("Status: 500 Internal Server Error\n");
 		printf("Content-type: application/json\n\n");
