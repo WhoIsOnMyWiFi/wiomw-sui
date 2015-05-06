@@ -214,14 +214,14 @@ function start_online_receiver() {
 			} else if ('xsrf' in data && data.xsrf != '') {
 				$("#statusText").html("Login Successful").fadeOut(3000);
 	
-				g_xsrf = response.xsrf;
+				g_xsrf = data.xsrf;
 				g_psalt = '';
 				g_phash = '';
 	
 				if (g_inmenu) {
 					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				} else {
-					if ('setup_required' in response && response['setup_required'] == true) {
+					if ('setup_required' in data && data.setup_required == true) {
 						setup_ssid_gui();
 					} else {
 						mainmenu_gui();
