@@ -234,7 +234,7 @@ void post_wiomw(yajl_val top)
 	if (pubtoken[0] == '\0') {
 		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\"}", authtoken);
 	} else if (privtoken[0] == '\0') {
-		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\",\"pubtoken\":\"%s\",\"agentkey\":\"%s\",\"pin\":\"%s\",\"xsrf\":\"%s\"}", authtoken, pubtoken, agentkey, pin, token.val);
+		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\",\"pubtoken\":\"%s\",\"pin\":\"%s\",\"xsrf\":\"%s\"}", authtoken, pubtoken, pin, token.val);
 	} else {
 		snprintf(data, BUFSIZ, "{\"authtoken\":\"%s\",\"pubtoken\":\"%s\",\"privtoken\":\"%s\",\"agentkey\":\"%s\"}", authtoken, pubtoken, privtoken, agentkey);
 	}
@@ -304,6 +304,7 @@ void post_wiomw(yajl_val top)
 			printf("{\"errors\":[\"Unable to remove old agentkey from UCI.\"]}");
 			return;
 		}
+		changed = true;
 	}
 
 	if (pubtoken_val != NULL && stpncpy(pubtoken, pubtoken_val, BUFSIZ) != pubtoken + BUFSIZ && pubtoken[0] != '\0') {
