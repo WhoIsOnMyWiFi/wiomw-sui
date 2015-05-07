@@ -119,7 +119,7 @@ function api_call_next()
 			api_call_next();
 		})
 		.error(function(xhr, ajaxOptions, thrownError) {
-			var response = $.parseJSON(xhr.response);
+			var response = $.parseJSON(xhr.responseText);
 
 			if (entry.xsrf_error) {
 				if ('xsrf' in response && response.xsrf != "") {
