@@ -284,14 +284,17 @@ function error_connection_gui()
 
 function no_cable_gui()
 {	
+
+      $("#form_usermsg").html(' \
+      <div class="error-message">\
+	<div class="container">	\
+	  <h2 id="h2_error">Internet cable is unplugged</h2> \
+	</div>	\
+      </div>	\
+      ');
+
+
     $("#form_main").html(' \
-      <div class="row"> \
-	<div class="twelve columns"> \
-	  <legend> \
-	    Internet cable is unplugged \
-	  </legend> \
-	</div> \
-      </div> \
       <div class="row">	\
 	<div class="twelve columns"> \
 	  <span class="instructionText">Be sure to plug a network cable into your Cable Modem and into the Blue Port on the back of your Router.  </span> \
@@ -331,14 +334,16 @@ function error_mac_gui()
 
 function no_connection_gui(mac)
 {	
+
+      $("#form_usermsg").html(' \
+      <div class="error-message">\
+	<div class="container">	\
+	  <h2 id="h2_error">The router can\'t see the internet</h2> \
+	</div>	\
+      </div>	\
+      ');
+
     $("#form_main").html(' \
-	<div class="row">\
-	  <div class="twelve columns"> \
-	  <legend> \
-	    The router can\'t see the internet \
-	  </legend> \
-	</div> \
-      </div> \
       <div class="row">	\
 	<div class="twelve columns"> \
 	  <span class="instructionText">This router is plugged in but can not see the internet.<br/> This usually means you need to contact your internet service provider (usually your cable or dsl provider), and tell them you have a new router with this Mac Address: \
@@ -397,6 +402,9 @@ function online_login_gui()
   
   function login_gui()
   {
+  
+    $("#form_usermsg").html('');
+  
   
     $("#form_main").html(' \
       <div class="row"> \
