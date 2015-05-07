@@ -363,7 +363,7 @@ void post_wiomw(yajl_val top)
 		printf("Content-type: application/json\n\n");
 		printf("{\"errors\":[\"Unable to determine setup status.\"]}");
 		return;
-	} else if ((ptr.flags & UCI_LOOKUP_COMPLETE) == 0) {
+	} else if (ptr.flags & UCI_LOOKUP_COMPLETE) {
 		has_been_setup = true;
 	}
 
