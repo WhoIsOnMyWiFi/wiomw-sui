@@ -26,6 +26,8 @@
   var g_inmenu = false;
   
   var g_internet_connected;
+
+  var g_setup_required = false;
   
   //firmware update specific variables
   var g_firmware_md5 = "";
@@ -146,7 +148,7 @@ function api_call_next()
 
 function start_online_receiver() {
 	$.receiveMessage(function(e) {
-		if (e.origin !== 'https://beta.whoisonmywifi.net') {
+		if (e.origin !== 'https://www.whoisonmywifi.net') {
 			alert('Bad message domain');
 		} else if (e.data != '') {
 			var data = $.parseJSON(e.data);
@@ -164,7 +166,10 @@ function start_online_receiver() {
 				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': data.authtoken}))
 				.done(function(response) {
 					if ('authtoken' in response && response.authtoken != '') {
-						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						if ('setup_required' in response && response.setup_required == true) {
+							g_setup_required = true;
+						}
 					} else if ('xsrf' in response && response.xsrf != '') {
 						$("#statusText").html("Login Successful").fadeOut(3000);
 	
@@ -173,9 +178,9 @@ function start_online_receiver() {
 						g_phash = '';
 	
 						if (g_inmenu) {
-							$.postMessage($.toJSON({'done': true}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+							$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 						} else {
-							if ('setup_required' in response && response['setup_required'] == true) {
+							if ('setup_required' in response && response.setup_required == true) {
 								setup_ssid_gui();
 							} else {
 								mainmenu_gui();
@@ -188,7 +193,7 @@ function start_online_receiver() {
 							alert(response.errors[i]);
 						}
 	
-						$.postMessage($.toJSON({'errors': response.errors}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					} else {
 						$("#statusText").show().html('Online Login Error');
 	
@@ -198,7 +203,7 @@ function start_online_receiver() {
 							alert(errors[i]);
 						}
 	
-						$.postMessage($.toJSON({'errors': errors}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						$.postMessage($.toJSON({'errors': errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 					}
 				})
 				.error(function(xhr, ajaxOptions, thrownError) {
@@ -208,7 +213,7 @@ function start_online_receiver() {
 						alert(response.errors[i]);
 					}
 	
-					$.postMessage($.toJSON({'errors': response.errors}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				});
 			} else if ('xsrf' in data && data.xsrf != '') {
 				$("#statusText").html("Login Successful").fadeOut(3000);
@@ -218,7 +223,7 @@ function start_online_receiver() {
 				g_phash = '';
 	
 				if (g_inmenu) {
-					$.postMessage($.toJSON({'done': true}), 'https://beta.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				} else {
 					if ('setup_required' in data && data.setup_required == true) {
 						setup_ssid_gui();
@@ -234,7 +239,7 @@ function start_online_receiver() {
 				location.href = '/';
 			}
 		}
-	}, 'https://beta.whoisonmywifi.net');
+	}, 'https://www.whoisonmywifi.net');
 }
 
 function check_connection_action()
@@ -391,7 +396,7 @@ function online_login_gui()
 {
 	$("#form_main").html(
 		'<div class="twelve columns"><legend>Who Is On My WiFi Online Login</legend></div>'
-		+ '<div class="row"><div class="one-third column"><br/><iframe id="iframe" class="twelve columns" style="height: 175px;" src="https://beta.whoisonmywifi.net/api/v100/rest/iframe_login.php"></iframe></div><div class="two-thirds column"></div></div>'
+		+ '<div class="row"><div class="one-third column"><br/><iframe id="iframe" class="twelve columns" style="height: 175px;" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_login.php"></iframe></div><div class="two-thirds column"></div></div>'
 		+ '<div class="row"><div class="twelve columns"><span class="instructionText">Or you could <a onClick="login_gui()">log into the router using the Product Key.</span></div></div>'
 	);
 } 
@@ -655,7 +660,7 @@ function online_login_gui()
           </div>	\
           <div class="two-thirds column">	\
 	    To Make Additional Changes to your Router, Go to <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
-	    To Manage Devices on your network, Go to <a href="https://beta.whoisonmywifi.net">https://beta.whoisonmywifi.net</a> <br/> \
+	    To Manage Devices on your network, Go to <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
           </div>	\
         </div>';
 	$("#statusText").show().html(main_html); 
@@ -765,7 +770,7 @@ function online_login_gui()
 	{
 	    //means they logged in normally, add setup functions
 	    $('<script>').attr({
-	    src: 'https://beta.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	    src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
 	    type: 'text/javascript'}).appendTo('body');    	    
 	}
 	else
@@ -893,7 +898,7 @@ function online_login_gui()
         <div class="row">	\
           <div class="one-third column">	\
 	    Manage Router: <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
-	    Manage Devices: <a href="https://beta.whoisonmywifi.net">https://beta.whoisonmywifi.net</a> <br/> \
+	    Manage Devices: <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
 	  </div>	\
           <div class="two-thirds column">	\
           </div>	\
@@ -974,7 +979,7 @@ function online_login_gui()
 	  </div>	 \
 	  <div class="row">	        \
 	    <div class="twelve columns">	\
-		<iframe id="iframe" src="https://beta.whoisonmywifi.net/api/v100/rest/iframe_menu.php"></iframe>\
+		<iframe id="iframe" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_menu.php"></iframe>\
 	    </div>	\
 	  </div>	\
 	  <div class="row">	\
@@ -1152,7 +1157,7 @@ function online_login_gui()
         <div class="row">	\
           <div class="one-third column">	\
 	    Manage Router: <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
-	    Manage Devices: <a href="https://beta.whoisonmywifi.net">https://beta.whoisonmywifi.net</a> <br/> \
+	    Manage Devices: <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
 	  </div>	\
           <div class="two-thirds column">	\
           </div>	\
