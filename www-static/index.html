@@ -225,7 +225,7 @@ function start_online_receiver() {
 				if (g_inmenu) {
 					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
 				} else {
-					if ('setup_required' in data && data.setup_required == true) {
+					if (g_setup_required == true) {
 						setup_ssid_gui();
 					} else {
 						mainmenu_gui();
