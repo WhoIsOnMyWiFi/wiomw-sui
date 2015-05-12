@@ -745,7 +745,6 @@ function online_login_gui()
 	    <li><a onClick="mm_wiomw_gui();" >Who Is On My Wifi Online Settings</a></li>	\
 	    <li><a onClick="mm_advancedmenu_gui();" >Advanced Menu</a></li>	\
 	    <li><a onClick="mm_reboot_action();" >Restart Router</a></li>	\
-	    <li><a onClick="mm_logout();" >Logout</a></li>	\
 	  </ul>	\
 	  </div>';
 
@@ -915,7 +914,8 @@ function online_login_gui()
   
   function mm_logout()
   {
-      location.href='';
+      //location.href='';
+      //no longer applies with online logins
   }
   
   
@@ -1035,7 +1035,6 @@ function online_login_gui()
 	 <ul>	\
 	    <li><a onClick="advmm_install_update_gui();" >Router Updates</a></li>	\
 	    <li><a onClick="mainmenu_gui();" >Main Menu</a></li>	\
-	    <li><a onClick="mm_logout();" >Logout</a></li>	\
 	  </ul>	\
 	  </div> \
         <div class="row">	\
