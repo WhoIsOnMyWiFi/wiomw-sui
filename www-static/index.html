@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta http-equiv=”Pragma” content=”no-cache”>
+  <meta http-equiv=”Expires” content=”-1″>
+  <meta http-equiv=”CACHE-CONTROL” content=”NO-CACHE”>   
   <title>Who's On My WiFi ® Router</title>
   <link rel="stylesheet" href="css/styles.css">
   <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
@@ -494,7 +497,7 @@ function online_login_gui()
   {
       $("#form_usermsg").html(' \
       	<div class="container"> \
-	  <h2>Internet Access Detected!</h2> \
+	  <h2>Router Setup</h2> \
 	</div>  \
       ');
       
@@ -586,7 +589,7 @@ function online_login_gui()
   {
       $("#form_usermsg").html(' \
       	<div class="container"> \
-	  <h2>Who\'s On My Wifi Online Connected!</h2> \
+	  <h2>Router Setup</h2> \
 	</div>  \
       ');  
   
@@ -650,8 +653,8 @@ function online_login_gui()
         <div class="row">	\
           <div class="twelve columns">	\
             <legend>';	
-	main_html = main_html + "Connect to Wireless Network: <b>" + g_network_ssid + "</b>";
-	main_html = main_html + '<br/>And You Are Setup!	\
+	main_html = main_html + "You may be disconnected or connected to another wireless network.  Be Sure to Connect to your new Wireless Network: <b>" + g_network_ssid + "</b>"; 
+	main_html = main_html + '\
 	    </legend>	\
 	  </div>	\
 	</div>	\
@@ -659,7 +662,7 @@ function online_login_gui()
           <div class="one-third column">	\
           </div>	\
           <div class="two-thirds column">	\
-	    To Make Additional Changes to your Router, Go to <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
+	    After Reconnecting, To Make Additional Changes to your Router, Go to <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
 	    To Manage Devices on your network, Go to <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
           </div>	\
         </div>';
