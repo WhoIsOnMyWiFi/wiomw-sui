@@ -26,6 +26,7 @@
 #include "update.h"
 #include "version.h"
 #include "xsrf.h"
+#include "dns.h"
 
 #define JSON_ERROR_BUFFER_LEN 1024
 
@@ -83,6 +84,11 @@ int main()
 				struct xsrft token;
 				if (valid_creds(top, &token)) {
 					post_wan_ip(top, &token);
+				}
+			} else if (strcmp(query, "dns") == 0) {
+				struct xsrft token;
+				if (valid_creds(top, &token)) {
+					post_dns(top, &token);
 				}
 			} else if (strcmp(query, "lan_ip") == 0) {
 				struct xsrft token;

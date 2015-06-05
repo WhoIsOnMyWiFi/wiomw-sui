@@ -16,6 +16,7 @@ sui_cgi_SOURCES = main_cgi.c \
 		  xsrf.h xsrfc.h xsrfc.c \
 		  urandom.h urandom.c \
 		  syslog_syserror.h syslog_syserror.c \
+		  dns.h dns.c \
 		  check.h check.c
 
 xsrfd_SOURCES = xsrfd.c \

@@ -17,13 +17,11 @@
 #define IPADDR_UCI_PATH "network.wan.ipaddr"
 #define NETMASK_UCI_PATH "network.wan.netmask"
 #define GATEWAY_UCI_PATH "network.wan.gateway"
-#define DNS_UCI_PATH "network.wan.dns"
 
 #define MAX_IP_LENGTH 32
 
 #define GET_WAN_COMMAND "ifconfig -a | awk '$1 == \"'`uci get network.wan.ifname`'\" {getline; if ($1 == \"inet\") {raddr = $2; split(raddr, saddr, \":\"); rmask = $4; split(rmask, smask, \":\"); print saddr[2] \" \" smask[2];}}'"
 #define GET_GATEWAY_COMMAND "netstat -nr | awk '$1 == \"0.0.0.0\" {print $2;}'"
-#define GET_DNS_COMMAND "cat /var/resolv.conf.auto | awk '$1 == \"nameserver\" {print $2;}'"
 
 /*
  * returns true if successful
@@ -131,23 +129,18 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 	const char* ipaddr_yajl_path[] = {"ip", (const char*)0};
 	const char* netmask_yajl_path[] = {"netmask", (const char*)0};
 	const char* gateway_yajl_path[] = {"gateway", (const char*)0};
-	const char* dns_yajl_path[] = {"dns", (const char*)0};
 	yajl_val dhcp_yajl = yajl_tree_get(top, dhcp_yajl_path, yajl_t_any);
 	yajl_val ipaddr_yajl = yajl_tree_get(top, ipaddr_yajl_path, yajl_t_string);
 	yajl_val netmask_yajl = yajl_tree_get(top, netmask_yajl_path, yajl_t_string);
 	yajl_val gateway_yajl = yajl_tree_get(top, gateway_yajl_path, yajl_t_string);
-	yajl_val dns_yajl = yajl_tree_get(top, dns_yajl_path, yajl_t_array);
 	bool valid = true;
 	bool dhcp = true;
 	char ipaddr[BUFSIZ];
 	char netmask[BUFSIZ];
 	char gateway[BUFSIZ];
-	char dns[BUFSIZ];
-	unsigned int dns_count = 0;
 	ipaddr[0] = '\0';
 	netmask[0] = '\0';
 	gateway[0] = '\0';
-	dns[0] = '\0';
 	if (dhcp_yajl != NULL) {
 		if (YAJL_IS_TRUE(dhcp_yajl)) {
 			dhcp = true;
@@ -156,7 +149,7 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 		} else {
 			printf("Status: 422 Unprocessable Entity\n");
 			printf("Content-type: application/json\n\n");
-			printf("{\"xsrf\":\"%s\",\"errors\":[\"DHCP value must be true or false (literally {\"dhcp\":true} or {\"dhcp\":false} as per the JSON spec; values such as 1, \"yes\", \"true\", \"1\", etc. are not currently accepted).\"]}", token->val);
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"DHCP value must be true or false (literally {'dhcp':true} or {'dhcp':false} as per the JSON spec; values such as 1, 'yes', 'true', '1', etc. are not currently accepted).\"]}", token->val);
 			return;
 		}
 	}
@@ -223,37 +216,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 			strncpy(gateway, tstr, BUFSIZ);
 		}
 	}
-	if (dns_yajl != NULL) {
-		if (dns_yajl->u.array.len > 0) {
-			int i;
-			char* tdns = dns;
-			size_t dnslen = BUFSIZ;
-			for (i = 0; i < dns_yajl->u.array.len; i++) {
-				char* tstr = YAJL_GET_STRING(dns_yajl->u.array.values[i]);
-				int res = 0;
-				struct in_addr temp;
-				if (tstr[0] == '\0'
-						|| strnlen(tstr, MAX_IP_LENGTH + 1) > MAX_IP_LENGTH
-						|| (res = inet_pton(AF_INET, tstr, &temp)) == 0) {
-					printf("Status: 422 Unprocessable Entity\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"xsrf\":\"%s\",\"errors\":[\"A manually-set WAN DNS address is currently required to be an IPv4 address sent in dotted-quad notation.\"]}", token->val);
-					return;
-				} else if (res != 1) {
-					printf("Status: 500 Internal Server Error\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to parse a supplied WAN IPv4 DNS address.\"]}", token->val);
-					return;
-				}
-				astpnprintf(&tdns, &dnslen, "%s", tstr);
-				dns_count++;
-				if (dnslen > 0) {
-					dnslen--;
-					tdns++;
-				}
-			}
-		}
-	}
 
 	struct uci_context* ctx;
 	struct uci_ptr ptr;
@@ -264,8 +226,7 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 	if (valid && (dhcp_yajl != NULL
 				|| strnlen(ipaddr, BUFSIZ) != 0
 				|| strnlen(netmask, BUFSIZ) != 0
-				|| strnlen(gateway, BUFSIZ) != 0
-				|| dns_yajl != NULL)) {
+				|| strnlen(gateway, BUFSIZ) != 0)) {
 		if (dhcp_yajl != NULL) {
 			snprintf(uci_lookup_str, BUFSIZ, PROTO_UCI_PATH "=%s", dhcp? "dhcp" : "static");
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
@@ -310,37 +271,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 				return;
 			}
 		}
-		if (dns_yajl != NULL) {
-			char* tdns = dns;
-			unsigned int i = 0;
-			strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
-			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-					|| ((ptr.flags & UCI_LOOKUP_COMPLETE) != 0
-						&& ((res = uci_delete(ctx, &ptr)) != UCI_OK
-							|| (res = uci_save(ctx, ptr.p)) != UCI_OK))) {
-				printf("Status: 500 Internal Server Error\n");
-				printf("Content-type: application/json\n\n");
-				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to change old WAN DNS servers in UCI.\"]}", token->val);
-				return;
-			}
-			for (i = 0; i < dns_count; i++) {
-				snprintf(uci_lookup_str, BUFSIZ, DNS_UCI_PATH "=%s", tdns);
-				if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
-						|| (res = uci_add_list(ctx, &ptr)) != UCI_OK) {
-					printf("Status: 500 Internal Server Error\n");
-					printf("Content-type: application/json\n\n");
-					printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to add WAN DNS server to UCI.\"]}", token->val);
-					return;
-				}
-				tdns += strlen(tdns) + 1;
-			}
-			if (dns_count > 0 && (res = uci_save(ctx, ptr.p)) != UCI_OK) {
-				printf("Status: 500 Internal Server Error\n");
-				printf("Content-type: application/json\n\n");
-				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN DNS servers to UCI.\"]}", token->val);
-				return;
-			}
-		}
 		res = uci_commit(ctx, &(ptr.p), true);
 	}
 
@@ -349,7 +279,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 	ipaddr[0] = '\0';
 	netmask[0] = '\0';
 	gateway[0] = '\0';
-	dns[0] = '\0';
 
 	strncpy(uci_lookup_str, PROTO_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
@@ -429,36 +358,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 		} else if (gateway[len-1] == '\n') {
 			gateway[len-1] = '\0';
 		}
-
-		char* tdns = dns;
-		size_t dnslen = BUFSIZ;
-		if (pclose(output) == -1 || (output = popen(GET_DNS_COMMAND, "r")) == NULL) {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS addresses for WAN.\"]}", token->val);
-			return;
-		}
-		while (fgets(tstr, BUFSIZ, output) != NULL) {
-			if ((len = strnlen(tstr, BUFSIZ)) >= BUFSIZ) {
-				printf("Status: 500 Internal Server Error\n");
-				printf("Content-type: application/json\n\n");
-				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS address for WAN.\"]}", token->val);
-				pclose(output);
-				return;
-			} else if (tstr[len-1] == '\n') {
-				tstr[len-1] = '\0';
-			}
-			astpnprintf(&tdns, &dnslen, ",\"%s\"", tstr);
-		}
-		if (!feof(output)) {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to get DNS adresses for WAN.\"]}", token->val);
-			pclose(output);
-			return;
-		}
-		pclose(output);
-
 	} else {
 		strncpy(uci_lookup_str, IPADDR_UCI_PATH, BUFSIZ);
 		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
@@ -499,24 +398,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN gateway from UCI.\"]}", token->val);
 			return;
 		}
-		strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
-		if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
-				&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-			char* tdns = dns;
-			size_t dnslen = BUFSIZ;
-			struct uci_element* elm;
-			uci_foreach_element(&(ptr.o->v.list), elm) {
-				astpnprintf(&tdns, &dnslen, ",\"%s\"", elm->name);
-			}
-		} else if (res == UCI_ERR_NOTFOUND || (ptr.flags & UCI_LOOKUP_DONE)) {
-			/* astpnprintf(&terrors, &errlen, ",\"The WAN gateway has not yet been set in UCI.\""); */
-			/* TODO: get from ifconfig if dhcp */
-		} else {
-			printf("Status: 500 Internal Server Error\n");
-			printf("Content-type: application/json\n\n");
-			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to retrieve WAN DNS entries from UCI.\"]}", token->val);
-			return;
-		}
 	}
 
 	char data[BUFSIZ];
@@ -533,9 +414,6 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 	}
 	if (strnlen(gateway, BUFSIZ) != 0) {
 		astpnprintf(&tdata, &datalen, ",\"gateway\":\"%s\"", gateway);
-	}
-	if (strnlen(dns, BUFSIZ) != 0) {
-		astpnprintf(&tdata, &datalen, ",\"dns\":[%s]", dns + 1);
 	}
 
 	if (datalen == BUFSIZ) {
