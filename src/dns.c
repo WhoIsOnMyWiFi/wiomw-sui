@@ -191,6 +191,7 @@ void post_dns(yajl_val top, struct xsrft* token)
 	int res = 0;
 	char uci_lookup_str[BUFSIZ];
 	int i = 0;
+	tdns = dns;
 	ctx = uci_alloc_context();
 
 	if (custom_nameservers_yajl != NULL || opendns != 0 || opendns_family_shield != 0 || google != 0) {
@@ -384,9 +385,9 @@ void post_dns(yajl_val top, struct xsrft* token)
 	strncpy(uci_lookup_str, DNS_UCI_PATH, BUFSIZ);
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) == UCI_OK
 			&& (ptr.flags & UCI_LOOKUP_COMPLETE)) {
-		char* tdns = dns;
 		size_t dnslen = BUFSIZ;
 		struct uci_element* elm;
+		tdns = dns;
 		uci_foreach_element(&(ptr.o->v.list), elm) {
 			if (strcmp(elm->name, OPENDNS_ENHANCED_DNS_1) == 0
 					|| strcmp(elm->name, OPENDNS_ENHANCED_DNS_2) == 0) {
