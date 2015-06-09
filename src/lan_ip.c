@@ -52,7 +52,7 @@ bool set_lan_ip4(const char* base, const char* netmask)
 		return false;
 	}
 
-	if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+	if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 		return false;
 	}
 
@@ -60,7 +60,7 @@ bool set_lan_ip4(const char* base, const char* netmask)
 	if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 			|| (res = uci_set(ctx, &ptr)) != UCI_OK
 			|| (res = uci_save(ctx, ptr.p)) != UCI_OK
-			|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			|| (res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 		/* TODO: syslog */
 		return true;
 	} else {
@@ -207,11 +207,11 @@ void post_lan_ip(yajl_val top, struct xsrft* token)
 		}
 
 		strncpy(uci_lookup_str, LAN_CHANGED_UCI_PATH "=1", BUFSIZ);
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK
 				|| (res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 				|| (res = uci_set(ctx, &ptr)) != UCI_OK
 				|| (res = uci_save(ctx, ptr.p)) != UCI_OK
-				|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+				|| (res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save LAN data to UCI.\"]}", token->val);
@@ -222,7 +222,7 @@ void post_lan_ip(yajl_val top, struct xsrft* token)
 			if ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 					|| (res = uci_set(ctx, &ptr)) != UCI_OK
 					|| (res = uci_save(ctx, ptr.p)) != UCI_OK
-					|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+					|| (res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 				printf("Status: 500 Internal Server Error\n");
 				printf("Content-type: application/json\n\n");
 				printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save IP address for DNS entry to UCI.\"]}", token->val);

@@ -347,7 +347,7 @@ void post_wiomw(yajl_val top)
 		}
 	}
 	if (changed) {
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"errors\":[\"Unable to save wiomw credentials to UCI.\"]}");

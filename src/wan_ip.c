@@ -271,7 +271,7 @@ void post_wan_ip(yajl_val top, struct xsrft* token)
 				return;
 			}
 		}
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WAN settings to UCI.\"]}", token->val);

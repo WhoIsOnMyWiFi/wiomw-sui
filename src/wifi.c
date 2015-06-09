@@ -194,7 +194,7 @@ void post_wifi(yajl_val top, struct xsrft* token)
 				return;
 			}
 		}
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save WiFi to UCI.\"]}", token->val);
@@ -205,7 +205,7 @@ void post_wifi(yajl_val top, struct xsrft* token)
 				&& ((res = uci_lookup_ptr(ctx, &ptr, uci_lookup_str, true)) != UCI_OK
 						|| (res = uci_set(ctx, &ptr)) != UCI_OK
 						|| (res = uci_save(ctx, ptr.p)) != UCI_OK
-						|| (res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK)) {
+						|| (res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK)) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to set WiFi as having been setup.\"]}", token->val);
