@@ -224,7 +224,7 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save DNS servers to UCI.\"]}", token->val);
@@ -244,7 +244,7 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to disable DNS interception setting in UCI.\"]}", token->val);
@@ -349,7 +349,7 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+		if ((res = uci_commit(ctx, &(ptr.p), false)) != UCI_OK) {
 			printf("Status: 500 Internal Server Error\n");
 			printf("Content-type: application/json\n\n");
 			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to enable DNS interception setting to UCI.\"]}", token->val);
