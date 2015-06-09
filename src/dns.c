@@ -16,14 +16,14 @@
 #define DNS_UCI_PATH "network.wan.dns"
 #define LAN_IP_UCI_PATH "network.lan.ipaddr"
 #define INTERCEPT_UCI_PATH "firewall.dns_intercept"
-#define INTERCEPT_UCI_VALUE "firewall.dns_intercept=redirect"
-#define INTERCEPT_NAME_UCI_VALUE "firewall.dns_intercept.name=DNS Interception"
-#define INTERCEPT_SRC_UCI_VALUE "firewall.dns_intercept.src=lan"
-#define INTERCEPT_PROTO_UCI_VALUE "firewall.dns_intercept.proto=udp"
-#define INTERCEPT_SPORT_UCI_VALUE "firewall.dns_intercept.src_dport=53"
-#define INTERCEPT_DPORT_UCI_VALUE "firewall.dns_intercept.dest_port=53"
-#define INTERCEPT_SRC_IP_UCI_PREFIX "firewall.dns_intercept.src_dip=!"
-#define INTERCEPT_DEST_IP_UCI_PREFIX "firewall.dns_intercept.dest_ip="
+#define INTERCEPT_UCI_VALUE INTERCEPT_UCI_PATH "=redirect"
+#define INTERCEPT_NAME_UCI_VALUE INTERCEPT_UCI_PATH ".name=DNS Interception"
+#define INTERCEPT_SRC_UCI_VALUE INTERCEPT_UCI_PATH ".src=lan"
+#define INTERCEPT_PROTO_UCI_VALUE INTERCEPT_UCI_PATH ".proto=udp"
+#define INTERCEPT_SPORT_UCI_VALUE INTERCEPT_UCI_PATH ".src_dport=53"
+#define INTERCEPT_DPORT_UCI_VALUE INTERCEPT_UCI_PATH ".dest_port=53"
+#define INTERCEPT_SRC_IP_UCI_PREFIX INTERCEPT_UCI_PATH ".src_dip=!"
+#define INTERCEPT_DEST_IP_UCI_PREFIX INTERCEPT_UCI_PATH ".dest_ip="
 
 #define OPENDNS_ENHANCED_DNS_1 "208.67.222.222"
 #define OPENDNS_ENHANCED_DNS_2 "208.67.220.220"
@@ -224,7 +224,12 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		res = uci_commit(ctx, &(ptr.p), true);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to save DNS servers to UCI.\"]}", token->val);
+			return;
+		}
 	}
 
 	if (interception == -1) {
@@ -239,7 +244,12 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		res = uci_commit(ctx, &(ptr.p), true);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to disable DNS interception setting in UCI.\"]}", token->val);
+			return;
+		}
 	} else if (interception == 1) {
 		char lan_ip[BUFSIZ];
 		lan_ip[0] = '\0';
@@ -339,7 +349,12 @@ void post_dns(yajl_val top, struct xsrft* token)
 			return;
 		}
 
-		res = uci_commit(ctx, &(ptr.p), true);
+		if ((res = uci_commit(ctx, &(ptr.p), true)) != UCI_OK) {
+			printf("Status: 500 Internal Server Error\n");
+			printf("Content-type: application/json\n\n");
+			printf("{\"xsrf\":\"%s\",\"errors\":[\"Unable to enable DNS interception setting to UCI.\"]}", token->val);
+			return;
+		}
 	}
 
 	FILE* output = NULL;
