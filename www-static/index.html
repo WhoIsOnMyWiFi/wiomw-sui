@@ -1,5 +1,26 @@
 <!DOCTYPE html>
 <html>
+<!--
+ Copyright 2014, 2015 Who Is On My WiFi.
+
+ This file is part of Who Is On My WiFi Linux.
+
+ Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ modify it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version.
+
+ Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with
+ Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+
+ More information about Who Is On My WiFi Linux can be found at
+ <http://www.whoisonmywifi.com/>.
+-->
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0">
@@ -1018,6 +1039,14 @@ function online_login_gui()
       $("#form_main").html(' \
 	<table class="u-full-width">	\
 	<caption>Advanced Menu</caption>	\
+	  <!--
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_dns_gui();" value="Modify DNS Settings" />	\
+	    </th>	\
+	    <td></td>	\
+	    </tr>	\
+	    --> \
 	  <tr class="settings-displayRow">	\
 	    <th>	\
 	    <input type="button" class="button-primary u-float-left" onClick="advmm_lan_gui();" value="Manually Set LAN IP" />	\
@@ -1198,7 +1227,6 @@ function online_login_gui()
 	    <br/>WAN IP <input placeholder="" type="text" class="u-full-width" id="wan_ip" name="wan_ip"> \
 	    <br/>WAN Netmask <input placeholder="" type="text" class="u-full-width" id="wan_netmask" name="wan_netmask"> \
 	    <br/>WAN Gateway <input placeholder="" type="text" class="u-full-width" id="wan_gateway" name="wan_gateway"> \
-	    <br/>WAN DNS <input placeholder="" type="text" class="u-full-width" id="wan_dns" name="wan_dns"> \
 	  </div>	\
           <div class="two-thirds column">	\
           </div>	\
@@ -1228,7 +1256,6 @@ function online_login_gui()
 			$("#wan_ip").val(json.ip);
 			$("#wan_netmask").val(json.netmask);
 			$("#wan_gateway").val(json.gateway);
-			$("#wan_dns").val(json.dns[0]);
 		},
 		'Manual WAN Network Settings Error');
   }      
@@ -1245,8 +1272,6 @@ function online_login_gui()
       var new_wan_ip = $("#wan_ip").val();
       var new_wan_netmask = $("#wan_netmask").val();
       var new_wan_gateway = $("#wan_gateway").val();
-      var new_wan_dns_array = [];
-      new_wan_dns_array[0] = $("#wan_dns").val();
       if(new_wan_dhcp)
       {	//if using dhcp, only send dhcp, and ignore everything else
 	  var network_creds = {
@@ -1259,8 +1284,7 @@ function online_login_gui()
 		  "dhcp": new_wan_dhcp,	      
 		  "ip": new_wan_ip,
 		  "netmask": new_wan_netmask,
-		  "gateway": new_wan_gateway,
-		  "dns": new_wan_dns_array
+		  "gateway": new_wan_gateway
 	  };
       }
       
