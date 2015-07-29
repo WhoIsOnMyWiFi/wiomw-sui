@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html>
+<!--
+ Copyright 2014, 2015 Who Is On My WiFi.
+
+ This file is part of Who Is On My WiFi Linux.
+
+ Who Is On My WiFi Linux is free software: you can redistribute it and/or
+ modify it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version.
+
+ Who Is On My WiFi Linux is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ Public License for more details.
+
+ You should have received a copy of the GNU General Public License along with
+ Who Is On My WiFi Linux.  If not, see <http://www.gnu.org/licenses/>.
+
+ More information about Who Is On My WiFi Linux can be found at
+ <http://www.whoisonmywifi.com/>.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta http-equiv=”Pragma” content=”no-cache”>
+  <meta http-equiv=”Expires” content=”-1″>
+  <meta http-equiv=”CACHE-CONTROL” content=”NO-CACHE”>   
+  <title>Who's On My WiFi ® Router</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="text/javascript" src="js/jquery-1.9.1.min.js">;</script>
+  <script type="text/javascript" src="js/jquery.json-2.4.min.js">;</script>
+  <script type="text/javascript" src="js/jquery.browser-0.0.7.min.js">;</script>
+  <script type="text/javascript" src="js/jquery.ba-postmessage-0.5.min.js">;</script>
+  <script type="text/javascript" src="js/spin.min.js">;</script>  
+  <script type="text/javascript">
+  
+  //handle global login variables
+  //these variables are passed with every json call
+  var g_psalt = "";
+  var g_phash = "";
+  var g_xsrf = "";
+  
+  //other global multi-page variables
+  var g_network_ssid = "";
+  var g_network_psk = "";
+
+  var g_inmenu = false;
+  
+  var g_internet_connected;
+
+  var g_setup_required = false;
+  
+  //firmware update specific variables
+  var g_firmware_md5 = "";
+  var g_firmware_version = "";
+  var g_firmware_size = "";
+
+  var g_api_call_queue = new Array();
+  var g_api_call_lock = false;
+  
+  //The code here can get a little ugly.
+  //All Javascript and html needs to be on the same page so that we are not storing sensitive json_data locally
+  //The convention is that all functions with gui_ set the html visuals.  All functions with action_ are the corresponding calls to the api
+  //All functions beginning with setup_ are part of the setup wizard, all functions part of the main menu begin with menu_
+
+  function api_call(url, data, done_cb, error_hdr, error_cb, xsrf_success, xsrf_error)
+  {
+	var entry = {};
+	if (typeof url !== 'undefined') {
+		entry.url = url;
+} else {
+		entry.url = '/cgi-bin/sui.cgi?version';
+	}
+	if (typeof data !== 'undefined') {
+		entry.data = data;
+	} else {
+		entry.data = {};
+	}
+	if (typeof done_cb !== 'undefined') {
+		entry.done_cb = done_cb;
+	} else {
+		entry.done_cb = function(j) {};
+	}
+	if (typeof error_hdr !== 'undefined') {
+		entry.error_hdr = error_hdr;
+	} else {
+		entry.error_hdr = 'Error during communication with ' + url;
+	}
+	if (typeof error_cb !== 'undefined') {
+		entry.error_cb = error_cb;
+	} else {
+		entry.error_cb = function(j) {};
+	}
+	if (typeof xsrf_success !== 'undefined') {
+		entry.xsrf_success = xsrf_success;
+	} else {
+		entry.xsrf_success = true;
+	}
+	if (typeof xsrf_error !== 'undefined') {
+		entry.xsrf_error = xsrf_error;
+	} else {
+		entry.xsrf_error = true;
+	}
+
+	g_api_call_queue.unshift(entry);
+
+	if (!g_api_call_lock) {
+		g_api_call_lock = true;
+		api_call_next();
+	}
+  }
+
+function api_call_next()
+{
+	if (g_api_call_queue.length == 0) {
+		g_api_call_lock = false;
+	} else {
+		var entry = g_api_call_queue.pop();
+
+		if (g_xsrf != "") {
+			entry.data.xsrf = g_xsrf;
+		} else {
+			entry.data.phash = g_phash;
+			entry.data.psalt = g_psalt;
+		}
+
+		var data = $.toJSON(entry.data);
+
+		$.post(entry.url, data)
+		.done(function(response) {
+			if (entry.xsrf_success) {
+				if ('xsrf' in response && response.xsrf != "") {
+					g_xsrf = response.xsrf;
+				} else if (g_xsrf != "") {
+					alert("Your session has expired. You need to log back in.");
+					location.href="";
+				}
+			}
+ 
+			entry.done_cb(response);
+
+			api_call_next();
+		})
+		.error(function(xhr, ajaxOptions, thrownError) {
+			var response = $.parseJSON(xhr.responseText);
+
+			if (entry.xsrf_error) {
+				if ('xsrf' in response && response.xsrf != "") {
+					g_xsrf = response.xsrf;
+				} else if (g_xsrf != "") {
+					alert("Your session has expired. You need to log back in.");
+					location.href="";
+				}
+			}
+ 
+			entry.error_cb(response);
+
+			$("#statusText").show().html(entry.error_hdr);
+
+			for (var i = 0; i < response.errors.length; i++) {
+				alert(response.errors[i]);
+			}
+				
+			api_call_next();
+		});
+	}
+			
+}
+
+function start_online_receiver() {
+	$.receiveMessage(function(e) {
+		if (e.origin !== 'https://www.whoisonmywifi.net') {
+			alert('Bad message domain');
+		} else if (e.data != '') {
+			var data = $.parseJSON(e.data);
+			if ('errors' in data && data.errors.length != 0) {
+				$("#statusText").show().html('Online Login Error');
+	
+				for (var i = 0; i < e.errors.length; i++) {
+					alert(e.errors[i]);
+				}
+	
+				if ('reset' in data && data.reset === true) {
+					location.href = '/';
+				}
+			} else if ('authtoken' in data && data.authtoken != '') {
+				$.post('/cgi-bin/sui.cgi?wiomw', $.toJSON({'authtoken': data.authtoken}))
+				.done(function(response) {
+					if ('authtoken' in response && response.authtoken != '') {
+						$.postMessage($.toJSON({'authtoken': response.authtoken}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						if ('setup_required' in response && response.setup_required == true) {
+							g_setup_required = true;
+						}
+					} else if ('xsrf' in response && response.xsrf != '') {
+						$("#statusText").html("Login Successful").fadeOut(3000);
+	
+						g_xsrf = response.xsrf;
+						g_psalt = '';
+						g_phash = '';
+	
+						if (g_inmenu) {
+							$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+						} else {
+							if ('setup_required' in response && response.setup_required == true) {
+								setup_ssid_gui();
+							} else {
+								mainmenu_gui();
+							}
+						}
+					} else if ('errors' in response && response.errors.length != 0) {
+						$("#statusText").show().html('Online Login Error');
+	
+						for (var i = 0; i < response.errors.length; i++) {
+							alert(response.errors[i]);
+						}
+	
+						$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					} else {
+						$("#statusText").show().html('Online Login Error');
+	
+						var errors = ['Unexpected response from router during online login.'];
+	
+						for (var i = 0; i < errors.length; i++) {
+							alert(errors[i]);
+						}
+	
+						$.postMessage($.toJSON({'errors': errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+					}
+				})
+				.error(function(xhr, ajaxOptions, thrownError) {
+					$("#statusText").show().html('Online Login Error');
+	
+					for (var i = 0; i < response.errors.length; i++) {
+						alert(response.errors[i]);
+					}
+	
+					$.postMessage($.toJSON({'errors': response.errors}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+				});
+			} else if ('xsrf' in data && data.xsrf != '') {
+				$("#statusText").html("Login Successful").fadeOut(3000);
+	
+				g_xsrf = data.xsrf;
+				g_psalt = '';
+				g_phash = '';
+	
+				if (g_inmenu) {
+					$.postMessage($.toJSON({'done': true}), 'https://www.whoisonmywifi.net', $('#iframe').get(0).contentWindow);
+				} else {
+					if (g_setup_required == true) {
+						setup_ssid_gui();
+					} else {
+						mainmenu_gui();
+					}
+				}
+			} else if ('reset' in data && data.reset === true) {
+				$("#statusText").show().html('Online Login Error');
+	
+				alert('Reloading page at request of login system...');
+	
+				location.href = '/';
+			}
+		}
+	}, 'https://www.whoisonmywifi.net');
+}
+
+function check_connection_action()
+{
+	$.get('/cgi-bin/sui.cgi?check')
+	.done(function(response) {
+		if (!('connected' in response && 'cable_connected' in response)) {
+			error_connection_gui();
+		} else if (response['connected'] === true) {
+			start_online_receiver();
+			online_login_gui();
+		} else if (response['cable_connected'] === true) {
+			no_connection_action();
+		} else {
+			no_cable_gui();
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		var response = $.parseJSON(xhr.responseText);
+		if (!('connected' in response && 'cable_connected' in response)) {
+			error_connection_gui();
+		} else if (response['connected'] === true) {
+			/*start_online_receiver();*/
+			/* TODO online_login_gui() ? */
+			error_connection_gui();
+		} else if (response['cable_connected'] === true) {
+			no_connection_action();
+		} else {
+			no_cable_gui();
+		}
+	});
+}
+
+function error_connection_gui()
+{
+	alert('Unable to check internet connection');
+	$("#form_main").html(
+		'<h1>Unable to check internet connection</h1>'
+		+ '<p>There was an issue while trying to determine if the '
+		+ 'router is connected to the internet. You should try '
+		+ '<a onClick="check_reboot_action();">rebooting the router'
+		+ '</a>.</p>'
+		+ "<p>If that doesn't work, you will need to contact "
+		+ 'support.</p>'
+	);
+}
+
+function no_cable_gui()
+{	
+
+      $("#form_usermsg").html(' \
+      <div class="error-message">\
+	<div class="container">	\
+	  <h2 id="h2_error">Internet cable is unplugged</h2> \
+	</div>	\
+      </div>	\
+      ');
+
+
+    $("#form_main").html(' \
+      <div class="row">	\
+	<div class="twelve columns"> \
+	  <span class="instructionText">Be sure to plug a network cable into your Cable Modem and into the Blue Port on the back of your Router.  </span> \
+	</div> \
+      </div>	\
+      <div class="row"><div class="twelve columns"><span class="instructionText">Or you could <a onClick="login_gui()">log into the router using the Product Key.</span></div></div> \
+      ');	
+	
+	
+}
+
+function no_connection_action()
+{
+	$.get('/cgi-bin/sui.cgi?mac')
+	.done(function(response) {
+		if (!('mac' in response)) {
+			error_mac_gui();
+		} else {
+			no_connection_gui(response['mac']);
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		error_mac_gui();
+	});
+}
+
+function error_mac_gui()
+{
+	alert('Unable to get MAC address');
+	$("#form_main").html(
+		'<h1>Unable to get MAC address</h1>'
+		+ '<p>The internet seems to be down, but there was an issue '
+		+ 'getting the MAC address from the router. You should '
+		+ 'contact support.</p>'
+	);
+}
+
+function no_connection_gui(mac)
+{	
+
+      $("#form_usermsg").html(' \
+      <div class="error-message">\
+	<div class="container">	\
+	  <h2 id="h2_error">The router can\'t see the internet</h2> \
+	</div>	\
+      </div>	\
+      ');
+
+    $("#form_main").html(' \
+      <div class="row">	\
+	<div class="twelve columns"> \
+	  <span class="instructionText">This router is plugged in but can not see the internet.<br/> This usually means you need to contact your internet service provider (usually your cable or dsl provider), and tell them you have a new router with this Mac Address: \
+	  <br/><br/><h3>' + mac + '</h3> \
+	  If that did not work, unfortunately, you may need to manually change some network settings to connect to the network. \
+	  <br/>You can manually change network settings <a onClick="login_gui()">here</a>	  \
+	  </span> \
+	</div> \
+      </div>	\
+      <div class="row"><div class="twelve columns"><span class="instructionText">Or you could <a onClick="login_gui()">log into the router using the Product Key.</span></div></div> \
+      ');		
+	
+}
+
+function check_reboot_action()
+{
+	$.get('/cgi-bin/sui.cgi?check_reboot')
+	.done(function(response) {
+		if ('rebooting' in response && response['rebooting'] === true) {
+			setup_restart_gui('inetnet');
+		} else {
+			error_reboot_gui();
+		}
+	})
+	.error(function(xhr, ajaxOptions, thrownError) {
+		error_reboot_gui();
+	});
+}
+
+function error_reboot_gui()
+{
+	$("#form_main").html(
+		'<h1>Router reboot requires login</h1>'
+		+ '<p>The router can be rebooted under certain circumstances '
+		+ 'without logging in, but this does not appear to be the '
+		+ "case at this time. If you can't use the "
+		+ '<a href="check_connection_action();">online login system'
+		+ '</a> at this time, you can always use the '
+		+ '<a href="login_gui();">backup login system</a> instead.'
+		+ '</p>'
+	);
+}
+
+function online_login_gui()
+{
+	$("#form_main").html(
+		'<div class="twelve columns"><legend>Who Is On My WiFi Online Login</legend></div>'
+		+ '<div class="row"><div class="one-third column"><br/><iframe id="iframe" class="twelve columns" style="height: 175px;" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_login.php"></iframe></div><div class="two-thirds column"></div></div>'
+		+ '<div class="row"><div class="twelve columns"><span class="instructionText">Or you could <a onClick="login_gui()">log into the router using the Product Key.</span></div></div>'
+	);
+} 
+ 
+  //************************************
+  //*Handle Login Page
+  //************************************
+  
+  function login_gui()
+  {
+  
+    $("#form_usermsg").html('');
+  
+  
+    $("#form_main").html(' \
+      <div class="row"> \
+	<div class="twelve columns"> \
+	  <legend> \
+	    Please enter your Who\'s On My WiFi ® <em class="clean-underline">Product Key</em> To Continue: \
+	  </legend> \
+	</div> \
+      </div> \
+      <div class="row">	\
+	<div class="one-third column"> \
+	  <input type="text" placeholder="Enter Key Here" name="password" id="password" class="u-full-width"> \
+	</div> \
+	<div class="two-thirds column"> \
+	  <input type="button" class="button button-primary u-float-left" onClick="login_action();" value="SUBMIT KEY" /> \
+	</div>    \
+      </div>	\
+	<div class="row"> \
+	  <div class="twelve columns"> \
+	    <span class="instructionText">NOTE:   The Product Key will be found on the  underside of your new router.  Please type in the dashes (-) </span> \
+	</div> \
+      </div> \
+      ');
+      history.pushState('Login','Login','');
+  }
+  
+  function login_action()
+  {
+    var statusmsg = "Logging In...";
+    $("#statusText").html(statusmsg);
+    var password = $("#password").val();
+    var json_data = '{"password":"' + password + '"}';
+    
+    $.post("/cgi-bin/sui.cgi?password", json_data)
+	.done(function( json_response ) {		
+		
+		$("#statusText").html("Login Successful").fadeOut(3000);   
+		if ('xsrf' in json_response) {
+			g_xsrf = json_response.xsrf;
+			g_psalt = "";
+			g_phash = "";
+		} else {
+			g_xsrf = "";
+			g_psalt = json_response.psalt;
+			g_phash = json_response.phash;
+		}
+		
+		
+		if(json_response.setup_required)
+		{
+		  setup_detect_internet_gui();
+		}		
+		else
+		{
+		  mainmenu_gui();//go to the main menu
+		}
+		
+		//setup_detect_internet_gui();
+		
+	})
+	.error(function (xhr, ajaxOptions, thrownError) {
+	      $("#statusText").show().html("Login Error").fadeOut(3000);    
+	      var json_result = $.parseJSON(xhr.responseText);
+	      for(var i = 0; i < json_result.errors.length; i++)
+	      {
+		if(json_result.errors[i] == "Invalid password.")
+		{	alert("Invalid Product Key\r\n\r\nPlease enter Product Key again.");
+		}
+		else
+		{	alert(json_result.errors[i]);
+		}
+	      }
+	});                 
+  }  
+  
+
+  //************************************
+  //*Handle Setup Wizard
+  //************************************  
+  
+  function setup_ssid_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Setup</h2> \
+	</div>  \
+      ');
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, you will give your WiFi Network a <em class="clean-underline">Name</em>:	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input placeholder="Enter WiFi Name Here" name="ssid" id="ssid" type="text" class="u-full-width">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left"  onClick="setup_ssid_action();" value="SUBMIT NAME" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE:  A WiFi name is also known as an SSID.  It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password, which we will enter next.</span>	\
+          </div>	\
+        </div>      \
+      ');      
+      
+      $("#statusText").html("");    
+      
+  }
+  
+  function setup_ssid_action()
+  {  
+    var statusmsg = "Validating SSID...";
+    $("#statusText").show().html(statusmsg);
+    g_network_ssid = $("#ssid").val();
+    //alert("Setting SSID to " + g_network_ssid);          
+    setup_psk_gui();
+  }
+  
+  function setup_psk_gui()
+  {
+      var usermsg = '<div class="container">';
+      usermsg += '<h2>NAME:  <span class="clean-underline">' + g_network_ssid + '</span></h2>';
+      usermsg += '</div>';
+      $("#form_usermsg").html(usermsg);
+      
+      $("#form_main").html(' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, you will create a WiFi Network <em class="clean-underline">Password</em>:	\
+            </legend>	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+            <input placeholder="Enter WiFi password Here" type="text" class="u-full-width"  id="psk" name="psk">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_psk_action();" value="Submit Password" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: WiFi shared passwords must be from 8 to 63 characters long.  Please write it down in a secure place.</span>	\
+          </div>	\
+        </div>	\
+      ');      
+      
+      $("#statusText").html("SSID Accepted").fadeOut(3000);      
+  
+  
+  
+  }
+ 
+  function setup_psk_action()
+  {
+      g_network_psk = $("#psk").val();      
+      
+      var network_creds = {
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
+      };      
+
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {setup_reboot_gui();}, 'Network Settings Error');
+  }  
+  
+  function setup_reboot_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Setup</h2> \
+	</div>  \
+      ');  
+  
+      var main_form_html = ' \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Now, lets reboot your Router and You\'re done.<BR/>';
+      main_form_html = main_form_html + 'Remember to connect to your new Wireless Network: <b>' +  g_network_ssid + '</b> ';
+      main_form_html = main_form_html + ' \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="setup_reboot_action(\'setup_complete\');" value="Restart Router" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText">NOTE: This setup wizard is now complete.  The router will take 60 seconds to restart</span>	\
+          </div>	\
+        </div>';
+	$("#form_main").html(main_form_html);	
+  }  
+  
+  function setup_reboot_action(reboot_reason)
+  {
+	api_call('/cgi-bin/sui.cgi?reboot', undefined, function(j) {setup_restart_gui(reboot_reason);}, 'Reboot Error', undefined, false);
+  }
+  
+  function setup_restart_gui(reboot_reason)
+  {
+    if(reboot_reason == "setup_complete")
+    {
+  
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "You may be disconnected or connected to another wireless network.  Be Sure to Connect to your new Wireless Network: <b>" + g_network_ssid + "</b>"; 
+	main_html = main_html + '\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+	    After Reconnecting, To Make Additional Changes to your Router, Go to <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
+	    To Manage Devices on your network, Go to <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);      
+    }
+    if(reboot_reason == "internet")
+    {
+    
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+	    Log back into the Router <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);          
+    
+    
+    
+    }
+  }    
+  
+  
+  //************************************
+  //*Handle Main Menu
+  //************************************
+  
+  function mainmenu_gui()
+  {
+      //$("#h1msg").html('Router Configuration');
+	  g_inmenu = true;
+      
+      
+      var form_main_html = '	\
+	<table class="u-full-width">	\
+	<caption>Your Current Settings</caption>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Wifi Name</div>	\
+	      <div class="settings-value"><label id="label_ssid">... \
+	      </label></div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_ssid_gui();" >Edit</a></td>	\
+	  </tr>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	      <div class="settings-label">Wifi Password</div>	\
+	      <div class="settings-value"><label id="label_psk">... \
+	      </label></div>	\
+	    </th>	\
+	    <td><a class="button button-primary edit-link settings-edit-toggle" onClick="mm_psk_gui();" >Edit</a></td>	\
+	  </tr>	\
+	 </table> \
+	 <div class="mm_link">	\
+	 <ul>	\
+	    <li><a onClick="mm_wiomw_gui();" >Who Is On My Wifi Online Settings</a></li>	\
+	    <li><a onClick="mm_advancedmenu_gui();" >Advanced Menu</a></li>	\
+	    <li><a onClick="mm_reboot_action();" >Restart Router</a></li>	\
+	  </ul>	\
+	  </div>';
+
+      $("#form_main").html(form_main_html);
+      $("#statusText").html('');
+
+
+	if( (g_network_ssid == "") || (g_network_psk == "") ) {
+
+		api_call('/cgi-bin/sui.cgi?wifi',
+				undefined,
+				function(json) {
+					g_network_ssid = json.ssid;
+					g_network_psk = json.psk;
+					$('#label_ssid').html(g_network_ssid);
+					$('#label_psk').html(g_network_psk);
+				},
+				'Network Settings Error');
+	} else {
+	  $("#label_ssid").html(g_network_ssid);
+	  $("#label_psk").html(g_network_psk);	
+	}
+	
+	if(g_internet_connected)
+	{
+	    //means they logged in normally, add setup functions
+	    $('<script>').attr({
+	    src: 'https://www.whoisonmywifi.net/js/luci-app-wiomw-api100-functions.js',
+	    type: 'text/javascript'}).appendTo('body');    	    
+	}
+	else
+	{
+	  //means they logged in with a product key, don't let them change wiomw variables	
+	}
+  }
+    
+  
+  function mm_psk_gui()
+  {
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Edit your WIFI Password \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+        ';        
+      form_main_html = form_main_html + '<input placeholder="' + g_network_psk + '" type="text" class="u-full-width"  id="psk" name="psk">';	    
+      form_main_html = form_main_html + ' \
+	</div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_psk_action();" value="Save Password" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: This is the Shared Wireless Password that you and your friends or family use to connect to your WiFi.   \
+            It can be between 8 and 64 characters. And remember this will be shared.\
+            </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+  }
+  
+  function mm_psk_action()
+  {
+      g_network_psk = $("#psk").val();      
+      
+      var network_creds = {
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
+      };      
+      
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {mm_reboot_gui();}, 'Wireless Settings Error');
+  }
+
+  function mm_reboot_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Reboot Required!</h2> \
+	</div>  \
+      ');  
+  
+      var main_form_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              To save your changes, please reboot your Router.<br/>';
+      main_form_html = main_form_html + 'Remember to connect using the Wireless Credentials: <b>' +  g_network_ssid + '</b> ';
+      main_form_html = main_form_html + ' \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	\
+          <div class="one-third column">	\
+          </div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_reboot_action();" value="Restart Router" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <span class="instructionText"></span>	\
+          </div>	\
+        </div>';
+      $("#form_main").html(main_form_html);
+  
+  }  
+  
+  function mm_reboot_action()
+  {      
+	api_call('/cgi-bin/sui.cgi?reboot', undefined, function(j) {mm_restart_gui();}, 'Reboot Error', undefined, false);
+  }
+  
+  function mm_restart_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Restarting</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Restarted</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "Wireless Network: <b>" + g_network_ssid + "</b>";
+	main_html = main_html + '\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+	    Manage Router: <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
+	    Manage Devices: <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>';
+	$("#statusText").show().html(main_html); 
+      }, 60000);      
+      
+  }    
+  
+  
+  
+  function mm_logout()
+  {
+      //location.href='';
+      //no longer applies with online logins
+  }
+  
+  
+  
+  
+
+  function mm_ssid_gui()
+  {
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Edit your WIFI Name \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+        ';        
+      form_main_html = form_main_html + '<input placeholder="' + g_network_ssid + '" type="text" class="u-full-width"  id="ssid" name="ssid">';	    
+      form_main_html = form_main_html + ' \
+	</div>	\
+          <div class="two-thirds column">	\
+            <input type="button" class="button-primary u-float-left" onClick="mm_ssid_action();" value="Save Name" />	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: A WiFi name is also known as an SSID. \
+            It can be up to 32 characters long and can be anything you want it to be. Have fun! This is not the same as a password.\
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+  }  
+  
+  function mm_ssid_action()
+  {
+      g_network_ssid = $("#ssid").val();
+      
+      var network_creds = {
+	      "ssid": g_network_ssid,
+	      "psk": g_network_psk
+      };      
+      
+      api_call('/cgi-bin/sui.cgi?wifi', network_creds, function(j) {mm_restart_gui();}, 'Wireless Settings Error');
+  }  
+  
+  
+  
+  function mm_wiomw_gui()
+  {
+    if(g_internet_connected)
+    {
+	$("#form_main").html(' \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <legend>	\
+		Edit Who\'s On My Wifi Online Properties \
+	      </legend>	\
+	    </div>	\
+	  </div>	 \
+	  <div class="row">	        \
+	    <div class="twelve columns">	\
+		<iframe id="iframe" src="https://www.whoisonmywifi.net/api/v100/rest/iframe_menu.php"></iframe>\
+	    </div>	\
+	  </div>	\
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+	    </div>	\
+	  </div>	  \
+	  ');        
+    }
+    else
+    {
+	$("#form_main").html(' \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <legend>	\
+		Edit Who\'s On My Wifi Online Properties \
+	      </legend>	\
+	    </div>	\
+	  </div>	 \
+	  <div class="row">	\
+	    <div class="twelve columns">	\
+	      <input type="button" class="button-cancel u-float-left" onClick="mainmenu_gui();" value="Cancel" />	\
+	      <br/><span class="instructionText">Note: Who\'s On My Wifi Online Login Changes can not be made while the internet is disconnected.</span>	\
+	    </div>	\
+	  </div>	  \
+	  ');            
+    }
+  }
+ 
+  
+  function mm_advancedmenu_gui()
+  {  
+      $("#form_main").html(' \
+	<table class="u-full-width">	\
+	<caption>Advanced Menu</caption>	\
+	  <!--
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_dns_gui();" value="Modify DNS Settings" />	\
+	    </th>	\
+	    <td></td>	\
+	    </tr>	\
+	    --> \
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_lan_gui();" value="Manually Set LAN IP" />	\
+	    </th>	\
+	    <td></td>	\
+	  </tr>	\
+	  <tr class="settings-displayRow">	\
+	    <th>	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_wan_gui();" value="Manually Set WAN IP" />	\
+	    </th>	\
+	    <td></td>	\
+	  </tr>	\
+	 </table> \
+	 <div class="mm_link">	\
+	 <ul>	\
+	    <li><a onClick="advmm_install_update_gui();" >Router Updates</a></li>	\
+	    <li><a onClick="mainmenu_gui();" >Main Menu</a></li>	\
+	  </ul>	\
+	  </div> \
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <br/><span class="instructionText"></span>	\
+          </div>	\
+        </div>	  \
+	');        
+  }  
+  
+  function advmm_install_update_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Install Router Firmware Update \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    Current Version: <label id="cur_version">...</label> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-primary u-float-left" id="btn_check_update" onClick="advmm_check_update_action();" value="Check for Updates" />	\
+            <br/><input type="button" class="button-primary u-float-left" id="btn_install_update" onClick="advmm_install_update_action();" value="Update Router" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Updating to the latest Router Firmware is always recommend.  Firmware update will require a Router Restart. \
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';  
+        $("#form_main").html(form_main_html);
+        $("#btn_install_update").hide();
+        
+	api_call('/cgi-bin/sui.cgi?version', undefined, function(json) {$('#cur_version').html(json.version);}, 'Version Check Settings Error');
+        
+  }
+  
+  function advmm_check_update_action()
+  {
+      //this might need to be inside of it's own separate gui...
+	  api_call('/cgi-bin/sui.cgi?update',
+			  undefined,
+			  function(json) {
+			  	//returns: version, size, md5, and update (available, ready, or none)
+				//if update=ready (and not 500 ok)
+				//send back psalt, phash, version, md5, and size
+				//this then causes the router to start sysupgrade, have them wait 60 seconds
+				//alert(json);
+			  	if(json.update == "none") {
+					alert("No Updates Available at this time");
+				}
+				if(json.update == "available") {
+					alert("Update is available but is not able to be downloaded");
+				}
+				if(json.update == "ready") {
+					alert("Update is available and being downloaded to your router");
+					g_firmware_md5 = json.md5;
+					g_firmware_size = json.size;
+					g_firmware_version = json.version;
+					//alert(g_firmware_md5 + ":" + g_firmware_size + ":" + g_firmware_version);
+					//advmm_install_update_gui();
+					$("#btn_install_update").show();
+				}
+			  },
+			  'Update Error');
+  }    
+  
+  
+  
+  function advmm_install_update_action()
+  {
+  
+      var network_creds = {
+	      "md5": g_firmware_md5,
+	      "size": g_firmware_size,
+	      "version": g_firmware_version
+      };      
+      
+      api_call('/cgi-bin/sui.cgi?update', network_creds, function(j) {advmm_sysupgrade_gui();}, 'Update Error');
+  }
+  
+  function advmm_sysupgrade_gui()
+  {
+      $("#form_usermsg").html(' \
+      	<div class="container"> \
+	  <h2>Router Upgrading</h2> \
+	</div>  \
+      ');  
+      
+      $("#form_main").html('');
+      
+      var opts = { 
+	lines: 12,
+	color: '#fff'
+      };
+      var target = document.getElementById('spinner_div');
+      var spinner = new Spinner(opts).spin(target);
+      setTimeout(function() { 
+	spinner.stop(); 
+	$("#form_usermsg").html(' \
+	  <div class="container"> \
+	    <h2>Router Upgraded to latest version: ' + g_firmware_version + '</h2> \
+	  </div>  \
+	');  	
+	var main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>';	
+	main_html = main_html + "Wireless Network: <b>" + g_network_ssid + "</b>";
+	main_html = main_html + '\
+	    </legend>	\
+	  </div>	\
+	</div>	\
+        <div class="row">	\
+          <div class="one-third column">	\
+	    Manage Router: <a href="http://setup.whoisonmywifi.net">http://setup.whoisonmywifi.net</a><br/> \
+	    Manage Devices: <a href="https://www.whoisonmywifi.net">https://www.whoisonmywifi.net</a> <br/> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>';
+        
+      api_call('/cgi-bin/sui.cgi?version',
+		      undefined,
+		      function(json) {
+		      	if(g_firmware_version != json.version) {
+				alert("An Error Occurred Updating to the latest version.  Version: " + json.version + " remains on router");
+			}
+		      },
+		      'Version Check Settings Error');
+        
+	$("#statusText").show().html(main_html); 
+      }, 120000);      
+      
+  }  
+  
+  
+  
+  function advmm_wan_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Manually Edit your WAN Settings \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	         WAN DHCP <input type="checkbox" name="wan_dhcp" id="wan_dhcp" value="1"> \
+	    <br/>WAN IP <input placeholder="" type="text" class="u-full-width" id="wan_ip" name="wan_ip"> \
+	    <br/>WAN Netmask <input placeholder="" type="text" class="u-full-width" id="wan_netmask" name="wan_netmask"> \
+	    <br/>WAN Gateway <input placeholder="" type="text" class="u-full-width" id="wan_gateway" name="wan_gateway"> \
+	  </div>	\
+          <div class="two-thirds column">	\
+          </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <input type="button" class="button-primary u-float-left" onClick="advmm_wan_action();" value="Save WAN Settings" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Changes to the WAN Settings will require a Router Restart. \
+            Please only make changes if you are sure they are the correct WAN Settings.  Otherwise, using the default DHCP option is the recommended.\
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+      
+      api_call('/cgi-bin/sui.cgi?wan_ip',
+		undefined,
+		function( json ) {
+		      	//xsrf_update(json);
+			if(json.dhcp) {
+				$("#wan_dhcp").prop('checked', true);
+			} else {
+				$("#wan_dhcp").prop('checked', false);
+			}
+			
+			$("#wan_ip").val(json.ip);
+			$("#wan_netmask").val(json.netmask);
+			$("#wan_gateway").val(json.gateway);
+		},
+		'Manual WAN Network Settings Error');
+  }      
+
+  function advmm_wan_action()
+  {
+      var network_creds;//what ultimately will be sent to sui.cgi
+      
+      var new_wan_dhcp = false;
+      if($("#wan_dhcp").prop('checked'))
+      {
+	new_wan_dhcp = true;
+      }
+      var new_wan_ip = $("#wan_ip").val();
+      var new_wan_netmask = $("#wan_netmask").val();
+      var new_wan_gateway = $("#wan_gateway").val();
+      if(new_wan_dhcp)
+      {	//if using dhcp, only send dhcp, and ignore everything else
+	  var network_creds = {
+		  "dhcp": new_wan_dhcp
+	  };      
+      }
+      else
+      {
+	  var network_creds = {
+		  "dhcp": new_wan_dhcp,	      
+		  "ip": new_wan_ip,
+		  "netmask": new_wan_netmask,
+		  "gateway": new_wan_gateway
+	  };
+      }
+      
+      api_call('/cgi-bin/sui.cgi?wan_ip', network_creds, function(j) {mm_reboot_action();}, 'Manual WAN Network Settings Error');
+ 
+  }
+  
+  
+  
+  function advmm_lan_gui()
+  {
+       
+      var form_main_html = '\
+        <div class="row">	\
+          <div class="twelve columns">	\
+            <legend>	\
+              Manually Edit your LAN Settings \
+            </legend>	\
+          </div>	\
+        </div>	 \
+        <div class="row">	        \
+          <div class="one-third column">	\
+	    LAN IP<input placeholder="LAN IP" type="text" class="u-full-width" id="lan_ip" name="lan_ip"> \
+	    <br/>LAN Netmask<input placeholder="LAN Netmask" type="text" class="u-full-width" id="lan_netmask" name="lan_netmask"> \
+	  </div>	\
+          <div class="two-thirds column">	\
+	  </div>	\
+        </div>	\
+        <div class="row">	\
+          <div class="twelve columns">	\
+	    <input type="button" class="button-primary u-float-left" onClick="advmm_lan_action();" value="Save LAN Settings" />	\
+            <br/><input type="button" class="button-cancel u-float-left" onClick="mm_advancedmenu_gui();" value="Cancel" />	\
+            <br/><span class="instructionText">NOTE: Changes to the LAN Settings will require a Router Restart. \
+            Please only make changes if you want to override the default LAN Settings provided.\
+	    </span>	\
+          </div>	\
+        </div>	\
+        ';
+      $("#form_main").html(form_main_html);
+      
+      api_call('/cgi-bin/sui.cgi?lan_ip',
+		undefined,
+		function(json) {
+		      	$("#lan_ip").val(json.ip);
+			$("#lan_netmask").val(json.netmask);	  
+		},
+		'Manual LAN Network Settings Error');
+  }    
+  
+  function advmm_lan_action()
+  {
+      var new_lan_ip = $("#lan_ip").val();
+      var new_lan_netmask = $("#lan_netmask").val();
+      var network_creds = {
+	      "ip": new_lan_ip,
+	      "netmask": new_lan_netmask
+      };
+
+      api_call('/cgi-bin/sui.cgi?lan_ip', network_creds, function(j) {mm_reboot_action();}, 'Manual LAN Network Settings Error');
+  }
+  
+  
+  $(document).ready(function() {
+    /* login_gui();    */
+
+    check_connection_action();
+    
+    /*
+    //causes infinite loop on Safari
+    window.addEventListener("popstate", function(e) {
+	location.href='';
+	alert("Calling PopState");
+    });
+    */
+    
+  });
+  
+  </script>
+</head>
+<body>
+   <div class="header-row">
+      <div class="container">
+        <h1 id="h1msg">Welcome To  <em class="clean-underline">Your</em> WiFi </h1>
+      </div>
+    </div>
+      <div class="flash-row" id="form_usermsg">
+
+      </div>    
+    <div class="container">
+        
+	  <div id="form_main">  
+                                                              
+                             
+	  </div>
+	  
+	  <div class="row" id="form_status">
+	    <div class="twelve columns">
+		<span id="statusText"></span>
+	    </div>
+	  </div>		  	  
+
+	  <div class="row">
+	    <div class="twelve columns" id="spinner_div" style="position: relative;">
+		
+	    </div>
+	  </div>	  
+	  
+	    
+    </div>
+</body>
+</html>

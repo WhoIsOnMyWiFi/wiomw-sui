@@ -1,0 +1,54 @@
+JSON example Sends
+
+http://192.168.1.1/cgi-bin/sui.cgi?password
+{
+"password":"test1234"
+}
+
+http://192.168.1.1/cgi-bin/sui.cgi?reboot
+{
+"psalt":"B0C2083294FC1609BAB6D01F0866C9578C501296",
+"phash":"278379E3067780DA8589843DB01F2F1482188348287BF11A328F0321990498DA4CF31D9FE0274594009FFDE16CDBF1220BF6A961B96922777257D88AB35403A5"
+}
+//currently causes error Bad Gateway
+{
+"psalt":"D8C1FFF2BEE3FFED14AE93C472688B81E326E246",
+"phash":"3998495A0C3E453AC15E929097E1563C0E1F9583695F4BB77EBB3266C48ADEDEBB127CF8E077525A990A089B88B7523AF9BEEE988265016064BC70AA16E45430"
+}
+
+
+
+http://192.168.1.1/cgi-bin/sui.cgi?wifi
+{
+  "psalt":"B0C2083294FC1609BAB6D01F0866C9578C501296",
+  "phash":"278379E3067780DA8589843DB01F2F1482188348287BF11A328F0321990498DA4CF31D9FE0274594009FFDE16CDBF1220BF6A961B96922777257D88AB35403A5",   
+  "ssid" : "new_ssid",
+  "psk" : "new_password"
+}  
+
+http://192.168.1.1/cgi-bin/sui.cgi?wiomw
+//currently causes error unable to set "Unable to delete old privtoken from UCI
+{
+"psalt":"B0C2083294FC1609BAB6D01F0866C9578C501296",
+"phash":"278379E3067780DA8589843DB01F2F1482188348287BF11A328F0321990498DA4CF31D9FE0274594009FFDE16CDBF1220BF6A961B96922777257D88AB35403A5",
+"agentkey":"ROUTER-AAAA-BBBBB-CCCC",
+"pubtoken":"dafkjfdalskjdflkjdsflkjdfslkjdfslkdfsjldfsj",
+"privtoken":"falkjfdskljfdaslkjafds;lkjdfslkjdfslkjfdaslkjdfsalkfdajslfkadjslfdaskjlafdskjdfalskjdfslkjfd"
+}
+
+
+http://192.168.1.1/cgi-bin/sui.cgi?mac
+//just make sure that you send this as GET not POST
+{
+}
+
+or just no body at all
+
+
+    $.post("cgi-bin/sui.cgi?update", json_data)
+	.done(function( json_response ) {		
+		//call with just psalt and phash
+		//returns: version, size, md5, and update (available, ready, or none)		
+		//if update=ready (and not 500 ok)
+		//send back psalt, phash, version, md5, and size
+		//this then causes the router to start sysupgrade, have them wait 60 seconds
