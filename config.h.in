@@ -31,9 +31,6 @@
 /* Define to 1 if you have the `uci' library (-luci). */
 #undef HAVE_LIBUCI
 
-/* Define to 1 if you have the `yajl' library (-lyajl). */
-#undef HAVE_LIBYAJL
-
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */
 #undef HAVE_MALLOC

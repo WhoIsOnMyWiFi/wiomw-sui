@@ -22,19 +22,19 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([openwrt-sui], [0.7.5], [bugs@whoisonmywifi.com])
+AC_INIT([openwrt-sui], [0.7.6], [bugs@whoisonmywifi.com])
 AC_CONFIG_SRCDIR([src/main_cgi.c])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([-Wall -Werror])
+AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 
 # Checks for programs.
 AC_PROG_CC
 
 # Checks for libraries.
-AC_SEARCH_LIBS([__isnan], [m])
-AC_SEARCH_LIBS([__isinf], [m])
-AC_CHECK_LIB([crypt], [crypt])
-AC_CHECK_LIB([uci], [uci_alloc_context])
+AC_SEARCH_LIBS([__isnan], [m], , AC_MSG_ERROR([Unable to find __isnan]))
+AC_SEARCH_LIBS([__isinf], [m], , AC_MSG_ERROR([Unable to find __isinf]))
+AC_CHECK_LIB([crypt], [crypt], , AC_MSG_ERROR([Unable to find libcrypt]))
+AC_CHECK_LIB([uci], [uci_alloc_context], , AC_MSG_ERROR([Unable to find libuci]))
 AC_ARG_WITH([fcgi],
    AC_HELP_STRING([--with-fcgi],
       [enable FastCGI support, default: check]),
@@ -46,8 +46,8 @@ AC_ARG_WITH([fcgi],
       AC_MSG_ERROR([Custom path to FastCGI installation is not yet supported])),
    AS_VAR_SET([use_fcgi], [check]))
 AS_IF([test "x$use_fcgi" != xno],
-   [AC_CHECK_LIB([fcgi],
-      [FCGI_Accept])])
+   [AC_CHECK_LIB([fcgi], [FCGI_Accept], ,
+		 AC_MSG_ERROR([Unable to find libfcgi]))])
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xno],
    AS_IF([test "x$use_fcgi" == xyes],
       AC_MSG_ERROR([FastCGI library not found, try --without-fcgi])))
@@ -55,8 +55,8 @@ PKG_CHECK_MODULES([CURL], [libcurl])
 LIBCURL_CHECK_CONFIG
 AS_IF([test "x$libcurl_protocol_HTTPS" != xyes || test "x$libcurl_feature_SSL" != xyes],
    [AC_MSG_ERROR([libcurl does not have HTTPS support enabled])])
-AC_CHECK_LIB([yajl], [yajl_tree_parse])
-AC_CHECK_LIB([polarssl], [sha512])
+AC_SEARCH_LIBS([yajl_tree_parse], [yajl yajl_s], , AC_MSG_ERROR([Either a dynamic or static version of yajl is required]))
+AC_CHECK_LIB([polarssl], [sha512], , AC_MSG_ERROR([Unable to find libpolarssl]))
 
 # Checks for header files.
 AS_IF([test "x$ac_cv_lib_fcgi_FCGI_Accept" == xyes],
