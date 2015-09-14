@@ -19,6 +19,8 @@
 # <http://www.whoisonmywifi.com/>.
 #
 
+AUTOMAKE_OPTIONS = subdir-objects
+
 check_PROGRAMS = xsrfc_behavior.out
 
 AM_CFLAGS = -I../../src --coverage 
