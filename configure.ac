@@ -22,13 +22,14 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([wiomw-sui], [0.7.9], [bugs@whoisonmywifi.com])
+AC_INIT([wiomw-sui], [0.7.10], [bugs@whoisonmywifi.com])
 AC_CONFIG_SRCDIR([src/main_cgi.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 
 # Checks for libraries.
 AC_SEARCH_LIBS([__isnan], [m], , AC_MSG_ERROR([Unable to find __isnan]))
