@@ -22,7 +22,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([wiomw-sui], [0.7.10], [bugs@whoisonmywifi.com])
+AC_INIT([wiomw-sui], [0.7.11], [bugs@whoisonmywifi.com])
 AC_CONFIG_SRCDIR([src/main_cgi.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
