@@ -12,3 +12,7 @@
 stamp-h*
 .deps
 Makefile
+*.gcda
+*.gcno
+*.gcov
+
